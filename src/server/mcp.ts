@@ -1,5 +1,4 @@
 import { Server, ServerOptions } from "./index.js";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import {
   z,
   ZodRawShape,
@@ -10,7 +9,7 @@ import {
   ZodType,
   ZodTypeDef,
   ZodOptional,
-} from "zod";
+} from "zod/v4";
 import {
   Implementation,
   Tool,

@@ -54,7 +54,7 @@ Let's create a simple MCP server that exposes a calculator tool and some data:
 ```typescript
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 // Create an MCP server
 const server = new McpServer({
@@ -392,7 +392,7 @@ MCP servers can request LLM completions from connected clients that support samp
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const mcpServer = new McpServer({
   name: "tools-with-sample-server",
@@ -713,7 +713,7 @@ A simple server demonstrating resources, tools, and prompts:
 
 ```typescript
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const server = new McpServer({
   name: "echo-server",
@@ -774,7 +774,7 @@ A more complex example showing database integration:
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import sqlite3 from "sqlite3";
 import { promisify } from "util";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const server = new McpServer({
   name: "sqlite-explorer",
@@ -857,7 +857,7 @@ If you want to offer an initial set of tools/prompts/resources, but later add ad
 
 ```ts
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 const server = new McpServer({
   name: "Dynamic Example",

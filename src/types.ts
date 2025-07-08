@@ -1,4 +1,4 @@
-import { z, ZodTypeAny } from "zod";
+import { z, ZodTypeAny } from "zod/v4";
 import { AuthInfo } from "./server/auth/types.js";
 
 export const LATEST_PROTOCOL_VERSION = "2025-06-18";

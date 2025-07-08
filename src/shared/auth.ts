@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 
 /**
  * RFC 9728 OAuth Protected Resource Metadata
