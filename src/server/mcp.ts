@@ -1,11 +1,9 @@
 import { Server, ServerOptions } from "./index.js";
 import {
-  core,
   output,
   toJSONSchema,
   z,
   ZodObject,
-  ZodOptional,
   ZodRawShape,
   ZodString,
   ZodType,
@@ -1238,8 +1236,8 @@ export type ToolCallback<Args extends undefined | ZodRawShape = undefined> =
 export type RegisteredTool = {
   title?: string;
   description?: string;
-  inputSchema?: ZodObject<any>;
-  outputSchema?: ZodObject<any>;
+  inputSchema?: ZodObject<ZodRawShape>;
+  outputSchema?: ZodObject<ZodRawShape>;
   annotations?: ToolAnnotations;
   callback: ToolCallback<undefined | ZodRawShape>;
   enabled: boolean;

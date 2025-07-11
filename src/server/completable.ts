@@ -1,4 +1,4 @@
-import { core, ZodErrorMap, ZodType, ZodTypeAny } from "zod/v4";
+import { core, ZodErrorMap, ZodTypeAny } from "zod/v4";
 
 export enum McpZodTypeKind {
   Completable = "McpCompletable",
