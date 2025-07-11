@@ -3,13 +3,13 @@ import express, { RequestHandler } from "express";
 import cors from "cors";
 import { authenticateClient } from "../middleware/clientAuth.js";
 import { OAuthTokenRevocationRequestSchema } from "../../../shared/auth.js";
-import { rateLimit, Options as RateLimitOptions } from "express-rate-limit";
+import { Options as RateLimitOptions, rateLimit } from "express-rate-limit";
 import { allowedMethods } from "../middleware/allowedMethods.js";
 import {
   InvalidRequestError,
+  OAuthError,
   ServerError,
   TooManyRequestsError,
-  OAuthError,
 } from "../errors.js";
 
 export type RevocationHandlerOptions = {
@@ -47,10 +47,10 @@ export function revocationHandler({
         standardHeaders: true,
         legacyHeaders: false,
         message: new TooManyRequestsError(
-          "You have exceeded the rate limit for token revocation requests"
+          "You have exceeded the rate limit for token revocation requests",
         ).toResponseObject(),
         ...rateLimitConfig,
-      })
+      }),
     );
   }
 

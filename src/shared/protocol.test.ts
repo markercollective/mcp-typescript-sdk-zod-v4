@@ -1,4 +1,4 @@
-import { ZodType, z } from "zod/v4";
+import { z, ZodType } from "zod/v4";
 import {
   ClientCapabilities,
   ErrorCode,
@@ -8,7 +8,7 @@ import {
   Result,
   ServerCapabilities,
 } from "../types.js";
-import { Protocol, mergeCapabilities } from "./protocol.js";
+import { mergeCapabilities, Protocol } from "./protocol.js";
 import { Transport } from "./transport.js";
 
 // Mock Transport class
@@ -31,7 +31,7 @@ describe("protocol tests", () => {
 
   beforeEach(() => {
     transport = new MockTransport();
-    sendSpy = jest.spyOn(transport, 'send');
+    sendSpy = jest.spyOn(transport, "send");
     protocol = new (class extends Protocol<Request, Notification, Result> {
       protected assertCapabilityForMethod(): void {}
       protected assertNotificationCapability(): void {}
@@ -84,124 +84,136 @@ describe("protocol tests", () => {
   describe("_meta preservation with onprogress", () => {
     test("should preserve existing _meta when adding progressToken", async () => {
       await protocol.connect(transport);
-      const request = { 
-        method: "example", 
-        params: {
-          data: "test",
-          _meta: {
-            customField: "customValue",
-            anotherField: 123
-          }
-        }
-      };
-      const mockSchema: ZodType<{ result: string }> = z.object({
-        result: z.string(),
-      });
-      const onProgressMock = jest.fn();
-      
-      protocol.request(request, mockSchema, {
-        onprogress: onProgressMock,
-      });
-      
-      expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({
+      const request = {
         method: "example",
         params: {
           data: "test",
           _meta: {
             customField: "customValue",
             anotherField: 123,
-            progressToken: expect.any(Number)
-          }
+          },
         },
-        jsonrpc: "2.0",
-        id: expect.any(Number)
-      }), expect.any(Object));
+      };
+      const mockSchema: ZodType<{ result: string }> = z.object({
+        result: z.string(),
+      });
+      const onProgressMock = jest.fn();
+
+      protocol.request(request, mockSchema, {
+        onprogress: onProgressMock,
+      });
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: "example",
+          params: {
+            data: "test",
+            _meta: {
+              customField: "customValue",
+              anotherField: 123,
+              progressToken: expect.any(Number),
+            },
+          },
+          jsonrpc: "2.0",
+          id: expect.any(Number),
+        }),
+        expect.any(Object),
+      );
     });
 
     test("should create _meta with progressToken when no _meta exists", async () => {
       await protocol.connect(transport);
-      const request = { 
-        method: "example", 
+      const request = {
+        method: "example",
         params: {
-          data: "test"
-        }
+          data: "test",
+        },
       };
       const mockSchema: ZodType<{ result: string }> = z.object({
         result: z.string(),
       });
       const onProgressMock = jest.fn();
-      
+
       protocol.request(request, mockSchema, {
         onprogress: onProgressMock,
       });
-      
-      expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({
-        method: "example",
-        params: {
-          data: "test",
-          _meta: {
-            progressToken: expect.any(Number)
-          }
-        },
-        jsonrpc: "2.0",
-        id: expect.any(Number)
-      }), expect.any(Object));
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: "example",
+          params: {
+            data: "test",
+            _meta: {
+              progressToken: expect.any(Number),
+            },
+          },
+          jsonrpc: "2.0",
+          id: expect.any(Number),
+        }),
+        expect.any(Object),
+      );
     });
 
     test("should not modify _meta when onprogress is not provided", async () => {
       await protocol.connect(transport);
-      const request = { 
-        method: "example", 
-        params: {
-          data: "test",
-          _meta: {
-            customField: "customValue"
-          }
-        }
-      };
-      const mockSchema: ZodType<{ result: string }> = z.object({
-        result: z.string(),
-      });
-      
-      protocol.request(request, mockSchema);
-      
-      expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({
+      const request = {
         method: "example",
         params: {
           data: "test",
           _meta: {
-            customField: "customValue"
-          }
+            customField: "customValue",
+          },
         },
-        jsonrpc: "2.0",
-        id: expect.any(Number)
-      }), expect.any(Object));
+      };
+      const mockSchema: ZodType<{ result: string }> = z.object({
+        result: z.string(),
+      });
+
+      protocol.request(request, mockSchema);
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: "example",
+          params: {
+            data: "test",
+            _meta: {
+              customField: "customValue",
+            },
+          },
+          jsonrpc: "2.0",
+          id: expect.any(Number),
+        }),
+        expect.any(Object),
+      );
     });
 
     test("should handle params being undefined with onprogress", async () => {
       await protocol.connect(transport);
-      const request = { 
-        method: "example"
+      const request = {
+        method: "example",
       };
       const mockSchema: ZodType<{ result: string }> = z.object({
         result: z.string(),
       });
       const onProgressMock = jest.fn();
-      
+
       protocol.request(request, mockSchema, {
         onprogress: onProgressMock,
       });
-      
-      expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({
-        method: "example",
-        params: {
-          _meta: {
-            progressToken: expect.any(Number)
-          }
-        },
-        jsonrpc: "2.0",
-        id: expect.any(Number)
-      }), expect.any(Object));
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: "example",
+          params: {
+            _meta: {
+              progressToken: expect.any(Number),
+            },
+          },
+          jsonrpc: "2.0",
+          id: expect.any(Number),
+        }),
+        expect.any(Object),
+      );
     });
   });
 
@@ -225,9 +237,9 @@ describe("protocol tests", () => {
         resetTimeoutOnProgress: false,
         onprogress: onProgressMock,
       });
-      
+
       jest.advanceTimersByTime(800);
-      
+
       if (transport.onmessage) {
         transport.onmessage({
           jsonrpc: "2.0",
@@ -240,14 +252,14 @@ describe("protocol tests", () => {
         });
       }
       await Promise.resolve();
-      
+
       expect(onProgressMock).toHaveBeenCalledWith({
         progress: 50,
         total: 100,
       });
-      
+
       jest.advanceTimersByTime(201);
-      
+
       await expect(requestPromise).rejects.toThrow("Request timed out");
     });
 
@@ -336,7 +348,9 @@ describe("protocol tests", () => {
           },
         });
       }
-      await expect(requestPromise).rejects.toThrow("Maximum total timeout exceeded");
+      await expect(requestPromise).rejects.toThrow(
+        "Maximum total timeout exceeded",
+      );
       expect(onProgressMock).toHaveBeenCalledTimes(1);
     });
 

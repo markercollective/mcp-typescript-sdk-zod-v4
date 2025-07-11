@@ -1,22 +1,27 @@
 #!/usr/bin/env node
 
-import { createServer } from 'node:http';
-import { createInterface } from 'node:readline';
-import { URL } from 'node:url';
-import { exec } from 'node:child_process';
-import { Client } from '../../client/index.js';
-import { StreamableHTTPClientTransport } from '../../client/streamableHttp.js';
-import { OAuthClientInformation, OAuthClientInformationFull, OAuthClientMetadata, OAuthTokens } from '../../shared/auth.js';
+import { createServer } from "node:http";
+import { createInterface } from "node:readline";
+import { URL } from "node:url";
+import { exec } from "node:child_process";
+import { Client } from "../../client/index.js";
+import { StreamableHTTPClientTransport } from "../../client/streamableHttp.js";
+import {
+  OAuthClientInformation,
+  OAuthClientInformationFull,
+  OAuthClientMetadata,
+  OAuthTokens,
+} from "../../shared/auth.js";
 import {
   CallToolRequest,
-  ListToolsRequest,
   CallToolResultSchema,
-  ListToolsResultSchema
-} from '../../types.js';
-import { OAuthClientProvider, UnauthorizedError } from '../../client/auth.js';
+  ListToolsRequest,
+  ListToolsResultSchema,
+} from "../../types.js";
+import { OAuthClientProvider, UnauthorizedError } from "../../client/auth.js";
 
 // Configuration
-const DEFAULT_SERVER_URL = 'http://localhost:3000/mcp';
+const DEFAULT_SERVER_URL = "http://localhost:3000/mcp";
 const CALLBACK_PORT = 8090; // Use different port than auth server (3001)
 const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/callback`;
 
@@ -32,7 +37,7 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
   constructor(
     private readonly _redirectUrl: string | URL,
     private readonly _clientMetadata: OAuthClientMetadata,
-    onRedirect?: (url: URL) => void
+    onRedirect?: (url: URL) => void,
   ) {
     this._onRedirect = onRedirect || ((url) => {
       console.log(`Redirect to: ${url.toString()}`);
@@ -75,7 +80,7 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
 
   codeVerifier(): string {
     if (!this._codeVerifier) {
-      throw new Error('No code verifier saved');
+      throw new Error("No code verifier saved");
     }
     return this._codeVerifier;
   }
@@ -91,7 +96,7 @@ class InteractiveOAuthClient {
     output: process.stdout,
   });
 
-  constructor(private serverUrl: string) { }
+  constructor(private serverUrl: string) {}
 
   /**
    * Prompts user for input via readline
@@ -128,20 +133,22 @@ class InteractiveOAuthClient {
     return new Promise<string>((resolve, reject) => {
       const server = createServer((req, res) => {
         // Ignore favicon requests
-        if (req.url === '/favicon.ico') {
+        if (req.url === "/favicon.ico") {
           res.writeHead(404);
           res.end();
           return;
         }
 
         console.log(`📥 Received callback: ${req.url}`);
-        const parsedUrl = new URL(req.url || '', 'http://localhost');
-        const code = parsedUrl.searchParams.get('code');
-        const error = parsedUrl.searchParams.get('error');
+        const parsedUrl = new URL(req.url || "", "http://localhost");
+        const code = parsedUrl.searchParams.get("code");
+        const error = parsedUrl.searchParams.get("error");
 
         if (code) {
-          console.log(`✅ Authorization code received: ${code?.substring(0, 10)}...`);
-          res.writeHead(200, { 'Content-Type': 'text/html' });
+          console.log(
+            `✅ Authorization code received: ${code?.substring(0, 10)}...`,
+          );
+          res.writeHead(200, { "Content-Type": "text/html" });
           res.end(`
             <html>
               <body>
@@ -156,7 +163,7 @@ class InteractiveOAuthClient {
           setTimeout(() => server.close(), 3000);
         } else if (error) {
           console.log(`❌ Authorization error: ${error}`);
-          res.writeHead(400, { 'Content-Type': 'text/html' });
+          res.writeHead(400, { "Content-Type": "text/html" });
           res.end(`
             <html>
               <body>
@@ -169,40 +176,46 @@ class InteractiveOAuthClient {
         } else {
           console.log(`❌ No authorization code or error in callback`);
           res.writeHead(400);
-          res.end('Bad request');
-          reject(new Error('No authorization code provided'));
+          res.end("Bad request");
+          reject(new Error("No authorization code provided"));
         }
       });
 
       server.listen(CALLBACK_PORT, () => {
-        console.log(`OAuth callback server started on http://localhost:${CALLBACK_PORT}`);
+        console.log(
+          `OAuth callback server started on http://localhost:${CALLBACK_PORT}`,
+        );
       });
     });
   }
 
-  private async attemptConnection(oauthProvider: InMemoryOAuthClientProvider): Promise<void> {
-    console.log('🚢 Creating transport with OAuth provider...');
+  private async attemptConnection(
+    oauthProvider: InMemoryOAuthClientProvider,
+  ): Promise<void> {
+    console.log("🚢 Creating transport with OAuth provider...");
     const baseUrl = new URL(this.serverUrl);
     const transport = new StreamableHTTPClientTransport(baseUrl, {
-      authProvider: oauthProvider
+      authProvider: oauthProvider,
     });
-    console.log('🚢 Transport created');
+    console.log("🚢 Transport created");
 
     try {
-      console.log('🔌 Attempting connection (this will trigger OAuth redirect)...');
+      console.log(
+        "🔌 Attempting connection (this will trigger OAuth redirect)...",
+      );
       await this.client!.connect(transport);
-      console.log('✅ Connected successfully');
+      console.log("✅ Connected successfully");
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        console.log('🔐 OAuth required - waiting for authorization...');
+        console.log("🔐 OAuth required - waiting for authorization...");
         const callbackPromise = this.waitForOAuthCallback();
         const authCode = await callbackPromise;
         await transport.finishAuth(authCode);
-        console.log('🔐 Authorization code received:', authCode);
-        console.log('🔌 Reconnecting with authenticated transport...');
+        console.log("🔐 Authorization code received:", authCode);
+        console.log("🔌 Reconnecting with authenticated transport...");
         await this.attemptConnection(oauthProvider);
       } else {
-        console.error('❌ Connection failed with non-auth error:', error);
+        console.error("❌ Connection failed with non-auth error:", error);
         throw error;
       }
     }
@@ -215,15 +228,15 @@ class InteractiveOAuthClient {
     console.log(`🔗 Attempting to connect to ${this.serverUrl}...`);
 
     const clientMetadata: OAuthClientMetadata = {
-      client_name: 'Simple OAuth MCP Client',
+      client_name: "Simple OAuth MCP Client",
       redirect_uris: [CALLBACK_URL],
-      grant_types: ['authorization_code', 'refresh_token'],
-      response_types: ['code'],
-      token_endpoint_auth_method: 'client_secret_post',
-      scope: 'mcp:tools'
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "client_secret_post",
+      scope: "mcp:tools",
     };
 
-    console.log('🔐 Creating OAuth provider...');
+    console.log("🔐 Creating OAuth provider...");
     const oauthProvider = new InMemoryOAuthClientProvider(
       CALLBACK_URL,
       clientMetadata,
@@ -231,18 +244,18 @@ class InteractiveOAuthClient {
         console.log(`📌 OAuth redirect handler called - opening browser`);
         console.log(`Opening browser to: ${redirectUrl.toString()}`);
         this.openBrowser(redirectUrl.toString());
-      }
+      },
     );
-    console.log('🔐 OAuth provider created');
+    console.log("🔐 OAuth provider created");
 
-    console.log('👤 Creating MCP client...');
+    console.log("👤 Creating MCP client...");
     this.client = new Client({
-      name: 'simple-oauth-client',
-      version: '1.0.0',
+      name: "simple-oauth-client",
+      version: "1.0.0",
     }, { capabilities: {} });
-    console.log('👤 Client created');
+    console.log("👤 Client created");
 
-    console.log('🔐 Starting OAuth flow...');
+    console.log("🔐 Starting OAuth flow...");
 
     await this.attemptConnection(oauthProvider);
 
@@ -254,56 +267,58 @@ class InteractiveOAuthClient {
    * Main interactive loop for user commands
    */
   async interactiveLoop(): Promise<void> {
-    console.log('\n🎯 Interactive MCP Client with OAuth');
-    console.log('Commands:');
-    console.log('  list - List available tools');
-    console.log('  call <tool_name> [args] - Call a tool');
-    console.log('  quit - Exit the client');
+    console.log("\n🎯 Interactive MCP Client with OAuth");
+    console.log("Commands:");
+    console.log("  list - List available tools");
+    console.log("  call <tool_name> [args] - Call a tool");
+    console.log("  quit - Exit the client");
     console.log();
 
     while (true) {
       try {
-        const command = await this.question('mcp> ');
+        const command = await this.question("mcp> ");
 
         if (!command.trim()) {
           continue;
         }
 
-        if (command === 'quit') {
+        if (command === "quit") {
           break;
-        } else if (command === 'list') {
+        } else if (command === "list") {
           await this.listTools();
-        } else if (command.startsWith('call ')) {
+        } else if (command.startsWith("call ")) {
           await this.handleCallTool(command);
         } else {
-          console.log('❌ Unknown command. Try \'list\', \'call <tool_name>\', or \'quit\'');
+          console.log(
+            "❌ Unknown command. Try 'list', 'call <tool_name>', or 'quit'",
+          );
         }
       } catch (error) {
-        if (error instanceof Error && error.message === 'SIGINT') {
-          console.log('\n\n👋 Goodbye!');
+        if (error instanceof Error && error.message === "SIGINT") {
+          console.log("\n\n👋 Goodbye!");
           break;
         }
-        console.error('❌ Error:', error);
+        console.error("❌ Error:", error);
       }
     }
   }
 
   private async listTools(): Promise<void> {
     if (!this.client) {
-      console.log('❌ Not connected to server');
+      console.log("❌ Not connected to server");
       return;
     }
 
     try {
       const request: ListToolsRequest = {
-        method: 'tools/list',
+        method: "tools/list",
         params: {},
       };
 
       const result = await this.client.request(request, ListToolsResultSchema);
 
       if (result.tools && result.tools.length > 0) {
-        console.log('\n📋 Available tools:');
+        console.log("\n📋 Available tools:");
         result.tools.forEach((tool, index) => {
           console.log(`${index + 1}. ${tool.name}`);
           if (tool.description) {
@@ -312,10 +327,10 @@ class InteractiveOAuthClient {
           console.log();
         });
       } else {
-        console.log('No tools available');
+        console.log("No tools available");
       }
     } catch (error) {
-      console.error('❌ Failed to list tools:', error);
+      console.error("❌ Failed to list tools:", error);
     }
   }
 
@@ -324,18 +339,18 @@ class InteractiveOAuthClient {
     const toolName = parts[1];
 
     if (!toolName) {
-      console.log('❌ Please specify a tool name');
+      console.log("❌ Please specify a tool name");
       return;
     }
 
     // Parse arguments (simple JSON-like format)
     let toolArgs: Record<string, unknown> = {};
     if (parts.length > 2) {
-      const argsString = parts.slice(2).join(' ');
+      const argsString = parts.slice(2).join(" ");
       try {
         toolArgs = JSON.parse(argsString);
       } catch {
-        console.log('❌ Invalid arguments format (expected JSON)');
+        console.log("❌ Invalid arguments format (expected JSON)");
         return;
       }
     }
@@ -343,15 +358,18 @@ class InteractiveOAuthClient {
     await this.callTool(toolName, toolArgs);
   }
 
-  private async callTool(toolName: string, toolArgs: Record<string, unknown>): Promise<void> {
+  private async callTool(
+    toolName: string,
+    toolArgs: Record<string, unknown>,
+  ): Promise<void> {
     if (!this.client) {
-      console.log('❌ Not connected to server');
+      console.log("❌ Not connected to server");
       return;
     }
 
     try {
       const request: CallToolRequest = {
-        method: 'tools/call',
+        method: "tools/call",
         params: {
           name: toolName,
           arguments: toolArgs,
@@ -363,7 +381,7 @@ class InteractiveOAuthClient {
       console.log(`\n🔧 Tool '${toolName}' result:`);
       if (result.content) {
         result.content.forEach((content) => {
-          if (content.type === 'text') {
+          if (content.type === "text") {
             console.log(content.text);
           } else {
             console.log(content);
@@ -392,15 +410,15 @@ class InteractiveOAuthClient {
 async function main(): Promise<void> {
   const serverUrl = process.env.MCP_SERVER_URL || DEFAULT_SERVER_URL;
 
-  console.log('🚀 Simple MCP OAuth Client');
+  console.log("🚀 Simple MCP OAuth Client");
   console.log(`Connecting to: ${serverUrl}`);
   console.log();
 
   const client = new InteractiveOAuthClient(serverUrl);
 
   // Handle graceful shutdown
-  process.on('SIGINT', () => {
-    console.log('\n\n👋 Goodbye!');
+  process.on("SIGINT", () => {
+    console.log("\n\n👋 Goodbye!");
     client.close();
     process.exit(0);
   });
@@ -408,7 +426,7 @@ async function main(): Promise<void> {
   try {
     await client.connect();
   } catch (error) {
-    console.error('Failed to start client:', error);
+    console.error("Failed to start client:", error);
     process.exit(1);
   } finally {
     client.close();
@@ -417,6 +435,6 @@ async function main(): Promise<void> {
 
 // Run if this file is executed directly
 main().catch((error) => {
-  console.error('Unhandled error:', error);
+  console.error("Unhandled error:", error);
   process.exit(1);
 });

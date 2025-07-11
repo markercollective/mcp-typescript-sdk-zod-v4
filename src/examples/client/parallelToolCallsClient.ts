@@ -1,16 +1,16 @@
-import { Client } from '../../client/index.js';
-import { StreamableHTTPClientTransport } from '../../client/streamableHttp.js';
+import { Client } from "../../client/index.js";
+import { StreamableHTTPClientTransport } from "../../client/streamableHttp.js";
 import {
+  CallToolResult,
+  CallToolResultSchema,
   ListToolsRequest,
   ListToolsResultSchema,
-  CallToolResultSchema,
   LoggingMessageNotificationSchema,
-  CallToolResult,
-} from '../../types.js';
+} from "../../types.js";
 
 /**
  * Parallel Tool Calls MCP Client
- * 
+ *
  * This client demonstrates how to:
  * 1. Start multiple tool calls in parallel
  * 2. Track notifications from each tool call using a caller parameter
@@ -18,11 +18,11 @@ import {
 
 // Command line args processing
 const args = process.argv.slice(2);
-const serverUrl = args[0] || 'http://localhost:3000/mcp';
+const serverUrl = args[0] || "http://localhost:3000/mcp";
 
 async function main(): Promise<void> {
-  console.log('MCP Parallel Tool Calls Client');
-  console.log('==============================');
+  console.log("MCP Parallel Tool Calls Client");
+  console.log("==============================");
   console.log(`Connecting to server at: ${serverUrl}`);
 
   let client: Client;
@@ -31,38 +31,40 @@ async function main(): Promise<void> {
   try {
     // Create client with streamable HTTP transport
     client = new Client({
-      name: 'parallel-tool-calls-client',
-      version: '1.0.0'
+      name: "parallel-tool-calls-client",
+      version: "1.0.0",
     });
 
     client.onerror = (error) => {
-      console.error('Client error:', error);
+      console.error("Client error:", error);
     };
 
     // Connect to the server
     transport = new StreamableHTTPClientTransport(new URL(serverUrl));
     await client.connect(transport);
-    console.log('Successfully connected to MCP server');
+    console.log("Successfully connected to MCP server");
 
     // Set up notification handler with caller identification
-    client.setNotificationHandler(LoggingMessageNotificationSchema, (notification) => {
-      console.log(`Notification: ${notification.params.data}`);
-    });
+    client.setNotificationHandler(
+      LoggingMessageNotificationSchema,
+      (notification) => {
+        console.log(`Notification: ${notification.params.data}`);
+      },
+    );
 
-    console.log("List tools")
+    console.log("List tools");
     const toolsRequest = await listTools(client);
-    console.log("Tools: ", toolsRequest)
-
+    console.log("Tools: ", toolsRequest);
 
     // 2. Start multiple notification tools in parallel
-    console.log('\n=== Starting Multiple Notification Streams in Parallel ===');
+    console.log("\n=== Starting Multiple Notification Streams in Parallel ===");
     const toolResults = await startParallelNotificationTools(client);
 
     // Log the results from each tool call
     for (const [caller, result] of Object.entries(toolResults)) {
       console.log(`\n=== Tool result for ${caller} ===`);
-      result.content.forEach((item: { type: string; text?: string; }) => {
-        if (item.type === 'text') {
+      result.content.forEach((item: { type: string; text?: string }) => {
+        if (item.type === "text") {
           console.log(`  ${item.text}`);
         } else {
           console.log(`  ${item.type} content:`, item);
@@ -71,16 +73,15 @@ async function main(): Promise<void> {
     }
 
     // 3. Wait for all notifications (10 seconds)
-    console.log('\n=== Waiting for all notifications ===');
-    await new Promise(resolve => setTimeout(resolve, 10000));
+    console.log("\n=== Waiting for all notifications ===");
+    await new Promise((resolve) => setTimeout(resolve, 10000));
 
     // 4. Disconnect
-    console.log('\n=== Disconnecting ===');
+    console.log("\n=== Disconnecting ===");
     await transport.close();
-    console.log('Disconnected from MCP server');
-
+    console.log("Disconnected from MCP server");
   } catch (error) {
-    console.error('Error running client:', error);
+    console.error("Error running client:", error);
     process.exit(1);
   }
 }
@@ -91,14 +92,17 @@ async function main(): Promise<void> {
 async function listTools(client: Client): Promise<void> {
   try {
     const toolsRequest: ListToolsRequest = {
-      method: 'tools/list',
-      params: {}
+      method: "tools/list",
+      params: {},
     };
-    const toolsResult = await client.request(toolsRequest, ListToolsResultSchema);
+    const toolsResult = await client.request(
+      toolsRequest,
+      ListToolsResultSchema,
+    );
 
-    console.log('Available tools:');
+    console.log("Available tools:");
     if (toolsResult.tools.length === 0) {
-      console.log('  No tools available');
+      console.log("  No tools available");
     } else {
       for (const tool of toolsResult.tools) {
         console.log(`  - ${tool.name}: ${tool.description}`);
@@ -113,62 +117,66 @@ async function listTools(client: Client): Promise<void> {
  * Start multiple notification tools in parallel with different configurations
  * Each tool call includes a caller parameter to identify its notifications
  */
-async function startParallelNotificationTools(client: Client): Promise<Record<string, CallToolResult>> {
+async function startParallelNotificationTools(
+  client: Client,
+): Promise<Record<string, CallToolResult>> {
   try {
     // Define multiple tool calls with different configurations
     const toolCalls = [
       {
-        caller: 'fast-notifier',
+        caller: "fast-notifier",
         request: {
-          method: 'tools/call',
+          method: "tools/call",
           params: {
-            name: 'start-notification-stream',
+            name: "start-notification-stream",
             arguments: {
-              interval: 2,  // 0.5 second between notifications
-              count: 10,      // Send 10 notifications
-              caller: 'fast-notifier' // Identify this tool call
-            }
-          }
-        }
+              interval: 2, // 0.5 second between notifications
+              count: 10, // Send 10 notifications
+              caller: "fast-notifier", // Identify this tool call
+            },
+          },
+        },
       },
       {
-        caller: 'slow-notifier',
+        caller: "slow-notifier",
         request: {
-          method: 'tools/call',
+          method: "tools/call",
           params: {
-            name: 'start-notification-stream',
+            name: "start-notification-stream",
             arguments: {
               interval: 5, // 2 seconds between notifications
-              count: 5,       // Send 5 notifications
-              caller: 'slow-notifier' // Identify this tool call
-            }
-          }
-        }
+              count: 5, // Send 5 notifications
+              caller: "slow-notifier", // Identify this tool call
+            },
+          },
+        },
       },
       {
-        caller: 'burst-notifier',
+        caller: "burst-notifier",
         request: {
-          method: 'tools/call',
+          method: "tools/call",
           params: {
-            name: 'start-notification-stream',
+            name: "start-notification-stream",
             arguments: {
-              interval: 1,  // 0.1 second between notifications
-              count: 3,       // Send just 3 notifications
-              caller: 'burst-notifier' // Identify this tool call
-            }
-          }
-        }
-      }
+              interval: 1, // 0.1 second between notifications
+              count: 3, // Send just 3 notifications
+              caller: "burst-notifier", // Identify this tool call
+            },
+          },
+        },
+      },
     ];
 
-    console.log(`Starting ${toolCalls.length} notification tools in parallel...`);
+    console.log(
+      `Starting ${toolCalls.length} notification tools in parallel...`,
+    );
 
     // Start all tool calls in parallel
     const toolPromises = toolCalls.map(({ caller, request }) => {
       console.log(`Starting tool call for ${caller}...`);
       return client.request(request, CallToolResultSchema)
-        .then(result => ({ caller, result }))
-        .catch(error => {
+        .then((result) => ({ caller, result }))
+        .catch((error) => {
           console.error(`Error in tool call for ${caller}:`, error);
           throw error;
         });
@@ -192,6 +200,6 @@ async function startParallelNotificationTools(client: Client): Promise<Record<st
 
 // Start the client
 main().catch((error: unknown) => {
-  console.error('Error running MCP client:', error);
+  console.error("Error running MCP client:", error);
   process.exit(1);
 });

@@ -1,7 +1,17 @@
-import { EventSource, type ErrorEvent, type EventSourceInit } from "eventsource";
-import { Transport, FetchLike } from "../shared/transport.js";
+import {
+  type ErrorEvent,
+  EventSource,
+  type EventSourceInit,
+} from "eventsource";
+import { FetchLike, Transport } from "../shared/transport.js";
 import { JSONRPCMessage, JSONRPCMessageSchema } from "../types.js";
-import { auth, AuthResult, extractResourceMetadataUrl, OAuthClientProvider, UnauthorizedError } from "./auth.js";
+import {
+  auth,
+  AuthResult,
+  extractResourceMetadataUrl,
+  OAuthClientProvider,
+  UnauthorizedError,
+} from "./auth.js";
 
 export class SseError extends Error {
   constructor(
@@ -93,7 +103,10 @@ export class SSEClientTransport implements Transport {
 
     let result: AuthResult;
     try {
-      result = await auth(this._authProvider, { serverUrl: this._url, resourceMetadataUrl: this._resourceMetadataUrl });
+      result = await auth(this._authProvider, {
+        serverUrl: this._url,
+        resourceMetadataUrl: this._resourceMetadataUrl,
+      });
     } catch (error) {
       this.onerror?.(error as Error);
       throw error;
@@ -119,12 +132,13 @@ export class SSEClientTransport implements Transport {
     }
 
     return new Headers(
-      { ...headers, ...this._requestInit?.headers }
+      { ...headers, ...this._requestInit?.headers },
     );
   }
 
   private _startOrAuth(): Promise<void> {
-    const fetchImpl = (this?._eventSourceInit?.fetch ?? this._fetch ?? fetch) as typeof fetch
+    const fetchImpl =
+      (this?._eventSourceInit?.fetch ?? this._fetch ?? fetch) as typeof fetch;
     return new Promise((resolve, reject) => {
       this._eventSource = new EventSource(
         this._url.href,
@@ -136,13 +150,16 @@ export class SSEClientTransport implements Transport {
             const response = await fetchImpl(url, {
               ...init,
               headers,
-            })
+            });
 
-            if (response.status === 401 && response.headers.has('www-authenticate')) {
+            if (
+              response.status === 401 &&
+              response.headers.has("www-authenticate")
+            ) {
               this._resourceMetadataUrl = extractResourceMetadataUrl(response);
             }
 
-            return response
+            return response;
           },
         },
       );
@@ -150,7 +167,6 @@ export class SSEClientTransport implements Transport {
 
       this._eventSource.onerror = (event) => {
         if (event.code === 401 && this._authProvider) {
-
           this._authThenStart().then(resolve, reject);
           return;
         }
@@ -218,7 +234,11 @@ export class SSEClientTransport implements Transport {
       throw new UnauthorizedError("No auth provider");
     }
 
-    const result = await auth(this._authProvider, { serverUrl: this._url, authorizationCode, resourceMetadataUrl: this._resourceMetadataUrl });
+    const result = await auth(this._authProvider, {
+      serverUrl: this._url,
+      authorizationCode,
+      resourceMetadataUrl: this._resourceMetadataUrl,
+    });
     if (result !== "AUTHORIZED") {
       throw new UnauthorizedError("Failed to authorize");
     }
@@ -246,13 +266,15 @@ export class SSEClientTransport implements Transport {
         signal: this._abortController?.signal,
       };
 
-const response = await (this._fetch ?? fetch)(this._endpoint, init);
+      const response = await (this._fetch ?? fetch)(this._endpoint, init);
       if (!response.ok) {
         if (response.status === 401 && this._authProvider) {
-
           this._resourceMetadataUrl = extractResourceMetadataUrl(response);
 
-          const result = await auth(this._authProvider, { serverUrl: this._url, resourceMetadataUrl: this._resourceMetadataUrl });
+          const result = await auth(this._authProvider, {
+            serverUrl: this._url,
+            resourceMetadataUrl: this._resourceMetadataUrl,
+          });
           if (result !== "AUTHORIZED") {
             throw new UnauthorizedError();
           }

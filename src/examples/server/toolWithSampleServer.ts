@@ -1,4 +1,3 @@
-
 // Run with: npx tsx src/examples/server/toolWithSampleServer.ts
 
 import { McpServer } from "../../server/mcp.js";
@@ -38,11 +37,13 @@ mcpServer.registerTool(
       content: [
         {
           type: "text",
-          text: response.content.type === "text" ? response.content.text : "Unable to generate summary",
+          text: response.content.type === "text"
+            ? response.content.text
+            : "Unable to generate summary",
         },
       ],
     };
-  }
+  },
 );
 
 async function main() {

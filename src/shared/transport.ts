@@ -1,6 +1,9 @@
 import { JSONRPCMessage, MessageExtraInfo, RequestId } from "../types.js";
 
-export type FetchLike = (url: string | URL, init?: RequestInit) => Promise<Response>;
+export type FetchLike = (
+  url: string | URL,
+  init?: RequestInit,
+) => Promise<Response>;
 
 /**
  * Options for sending a JSON-RPC message.
@@ -24,7 +27,7 @@ export type TransportSendOptions = {
    * This allows clients to persist the latest token for potential reconnection.
    */
   onresumptiontoken?: (token: string) => void;
-}
+};
 /**
  * Describes the minimal contract for a MCP transport that a client or server can communicate over.
  */

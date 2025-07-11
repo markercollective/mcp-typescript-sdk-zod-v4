@@ -22,7 +22,7 @@ describe("SSEClientTransport", () => {
     authServer = createServer((req, res) => {
       if (req.url === "/.well-known/oauth-authorization-server") {
         res.writeHead(200, {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         });
         res.end(JSON.stringify({
           issuer: "https://auth.example.com",
@@ -77,7 +77,7 @@ describe("SSEClientTransport", () => {
       done();
     });
 
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(async () => {
@@ -355,9 +355,16 @@ describe("SSEClientTransport", () => {
 
     beforeEach(() => {
       mockAuthProvider = {
-        get redirectUrl() { return "http://localhost/callback"; },
-        get clientMetadata() { return { redirect_uris: ["http://localhost/callback"] }; },
-        clientInformation: jest.fn(() => ({ client_id: "test-client-id", client_secret: "test-client-secret" })),
+        get redirectUrl() {
+          return "http://localhost/callback";
+        },
+        get clientMetadata() {
+          return { redirect_uris: ["http://localhost/callback"] };
+        },
+        clientInformation: jest.fn(() => ({
+          client_id: "test-client-id",
+          client_secret: "test-client-secret",
+        })),
         tokens: jest.fn(),
         saveTokens: jest.fn(),
         redirectToAuthorization: jest.fn(),
@@ -369,7 +376,7 @@ describe("SSEClientTransport", () => {
     it("attaches auth header from provider on SSE connection", async () => {
       mockAuthProvider.tokens.mockResolvedValue({
         access_token: "test-token",
-        token_type: "Bearer"
+        token_type: "Bearer",
       });
 
       transport = new SSEClientTransport(resourceBaseUrl, {
@@ -385,7 +392,7 @@ describe("SSEClientTransport", () => {
     it("attaches custom header from provider on initial SSE connection", async () => {
       mockAuthProvider.tokens.mockResolvedValue({
         access_token: "test-token",
-        token_type: "Bearer"
+        token_type: "Bearer",
       });
       const customHeaders = {
         "X-Custom-Header": "custom-value",
@@ -408,7 +415,7 @@ describe("SSEClientTransport", () => {
     it("attaches auth header from provider on POST requests", async () => {
       mockAuthProvider.tokens.mockResolvedValue({
         access_token: "test-token",
-        token_type: "Bearer"
+        token_type: "Bearer",
       });
 
       transport = new SSEClientTransport(resourceBaseUrl, {
@@ -431,13 +438,12 @@ describe("SSEClientTransport", () => {
     });
 
     it("attempts auth flow on 401 during SSE connection", async () => {
-
       // Create server that returns 401s
       resourceServer.close();
       authServer.close();
 
       // Start auth server on random port
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         authServer.listen(0, "127.0.0.1", () => {
           const addr = authServer.address() as AddressInfo;
           authBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -450,23 +456,23 @@ describe("SSEClientTransport", () => {
 
         if (req.url === "/.well-known/oauth-protected-resource") {
           res.writeHead(200, {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           })
-          .end(JSON.stringify({
-            resource: resourceBaseUrl.href,
-            authorization_servers: [`${authBaseUrl}`],
-          }));
+            .end(JSON.stringify({
+              resource: resourceBaseUrl.href,
+              authorization_servers: [`${authBaseUrl}`],
+            }));
           return;
         }
 
         if (req.url !== "/") {
-            res.writeHead(404).end();
+          res.writeHead(404).end();
         } else {
           res.writeHead(401).end();
         }
       });
 
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         resourceServer.listen(0, "127.0.0.1", () => {
           const addr = resourceServer.address() as AddressInfo;
           resourceBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -479,7 +485,9 @@ describe("SSEClientTransport", () => {
       });
 
       await expect(() => transport.start()).rejects.toThrow(UnauthorizedError);
-      expect(mockAuthProvider.redirectToAuthorization.mock.calls).toHaveLength(1);
+      expect(mockAuthProvider.redirectToAuthorization.mock.calls).toHaveLength(
+        1,
+      );
     });
 
     it("attempts auth flow on 401 during POST request", async () => {
@@ -487,7 +495,7 @@ describe("SSEClientTransport", () => {
       resourceServer.close();
       authServer.close();
 
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         authServer.listen(0, "127.0.0.1", () => {
           const addr = authServer.address() as AddressInfo;
           authBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -502,12 +510,12 @@ describe("SSEClientTransport", () => {
           case "GET":
             if (req.url === "/.well-known/oauth-protected-resource") {
               res.writeHead(200, {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
               })
-              .end(JSON.stringify({
-                resource: resourceBaseUrl.href,
-                authorization_servers: [`${authBaseUrl}`],
-              }));
+                .end(JSON.stringify({
+                  resource: resourceBaseUrl.href,
+                  authorization_servers: [`${authBaseUrl}`],
+                }));
               return;
             }
 
@@ -526,13 +534,13 @@ describe("SSEClientTransport", () => {
             break;
 
           case "POST":
-          res.writeHead(401);
-          res.end();
+            res.writeHead(401);
+            res.end();
             break;
         }
       });
 
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         resourceServer.listen(0, "127.0.0.1", () => {
           const addr = resourceServer.address() as AddressInfo;
           resourceBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -553,14 +561,18 @@ describe("SSEClientTransport", () => {
         params: {},
       };
 
-      await expect(() => transport.send(message)).rejects.toThrow(UnauthorizedError);
-      expect(mockAuthProvider.redirectToAuthorization.mock.calls).toHaveLength(1);
+      await expect(() => transport.send(message)).rejects.toThrow(
+        UnauthorizedError,
+      );
+      expect(mockAuthProvider.redirectToAuthorization.mock.calls).toHaveLength(
+        1,
+      );
     });
 
     it("respects custom headers when using auth provider", async () => {
       mockAuthProvider.tokens.mockResolvedValue({
         access_token: "test-token",
-        token_type: "Bearer"
+        token_type: "Bearer",
       });
 
       const customHeaders = {
@@ -594,7 +606,7 @@ describe("SSEClientTransport", () => {
       let currentTokens: OAuthTokens = {
         access_token: "expired-token",
         token_type: "Bearer",
-        refresh_token: "refresh-token"
+        refresh_token: "refresh-token",
       };
       mockAuthProvider.tokens.mockImplementation(() => currentTokens);
       mockAuthProvider.saveTokens.mockImplementation((tokens) => {
@@ -614,18 +626,22 @@ describe("SSEClientTransport", () => {
         if (req.url === "/token" && req.method === "POST") {
           // Handle token refresh request
           let body = "";
-          req.on("data", chunk => { body += chunk; });
+          req.on("data", (chunk) => {
+            body += chunk;
+          });
           req.on("end", () => {
             const params = new URLSearchParams(body);
-            if (params.get("grant_type") === "refresh_token" &&
+            if (
+              params.get("grant_type") === "refresh_token" &&
               params.get("refresh_token") === "refresh-token" &&
               params.get("client_id") === "test-client-id" &&
-              params.get("client_secret") === "test-client-secret") {
+              params.get("client_secret") === "test-client-secret"
+            ) {
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify({
                 access_token: "new-token",
                 token_type: "Bearer",
-                refresh_token: "new-refresh-token"
+                refresh_token: "new-refresh-token",
               }));
             } else {
               res.writeHead(400).end();
@@ -635,11 +651,10 @@ describe("SSEClientTransport", () => {
         }
 
         res.writeHead(401).end();
-
       });
 
       // Start auth server on random port
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         authServer.listen(0, "127.0.0.1", () => {
           const addr = authServer.address() as AddressInfo;
           authBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -653,12 +668,12 @@ describe("SSEClientTransport", () => {
 
         if (req.url === "/.well-known/oauth-protected-resource") {
           res.writeHead(200, {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           })
-          .end(JSON.stringify({
-            resource: resourceBaseUrl.href,
-            authorization_servers: [`${authBaseUrl}`],
-          }));
+            .end(JSON.stringify({
+              resource: resourceBaseUrl.href,
+              authorization_servers: [`${authBaseUrl}`],
+            }));
           return;
         }
 
@@ -667,11 +682,11 @@ describe("SSEClientTransport", () => {
           return;
         }
 
-          const auth = req.headers.authorization;
-          if (auth === "Bearer expired-token") {
-            res.writeHead(401).end();
-            return;
-          }
+        const auth = req.headers.authorization;
+        if (auth === "Bearer expired-token") {
+          res.writeHead(401).end();
+          return;
+        }
 
         if (auth === "Bearer new-token") {
           res.writeHead(200, {
@@ -685,10 +700,10 @@ describe("SSEClientTransport", () => {
           return;
         }
 
-          res.writeHead(401).end();
+        res.writeHead(401).end();
       });
 
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         resourceServer.listen(0, "127.0.0.1", () => {
           const addr = resourceServer.address() as AddressInfo;
           resourceBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -705,7 +720,7 @@ describe("SSEClientTransport", () => {
       expect(mockAuthProvider.saveTokens).toHaveBeenCalledWith({
         access_token: "new-token",
         token_type: "Bearer",
-        refresh_token: "new-refresh-token"
+        refresh_token: "new-refresh-token",
       });
       expect(connectionAttempts).toBe(1);
       expect(lastServerRequest.headers.authorization).toBe("Bearer new-token");
@@ -716,7 +731,7 @@ describe("SSEClientTransport", () => {
       let currentTokens: OAuthTokens = {
         access_token: "expired-token",
         token_type: "Bearer",
-        refresh_token: "refresh-token"
+        refresh_token: "refresh-token",
       };
       mockAuthProvider.tokens.mockImplementation(() => currentTokens);
       mockAuthProvider.saveTokens.mockImplementation((tokens) => {
@@ -736,18 +751,22 @@ describe("SSEClientTransport", () => {
         if (req.url === "/token" && req.method === "POST") {
           // Handle token refresh request
           let body = "";
-          req.on("data", chunk => { body += chunk; });
+          req.on("data", (chunk) => {
+            body += chunk;
+          });
           req.on("end", () => {
             const params = new URLSearchParams(body);
-            if (params.get("grant_type") === "refresh_token" &&
+            if (
+              params.get("grant_type") === "refresh_token" &&
               params.get("refresh_token") === "refresh-token" &&
               params.get("client_id") === "test-client-id" &&
-              params.get("client_secret") === "test-client-secret") {
+              params.get("client_secret") === "test-client-secret"
+            ) {
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify({
                 access_token: "new-token",
                 token_type: "Bearer",
-                refresh_token: "new-refresh-token"
+                refresh_token: "new-refresh-token",
               }));
             } else {
               res.writeHead(400).end();
@@ -757,11 +776,10 @@ describe("SSEClientTransport", () => {
         }
 
         res.writeHead(401).end();
-
       });
 
       // Start auth server on random port
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         authServer.listen(0, "127.0.0.1", () => {
           const addr = authServer.address() as AddressInfo;
           authBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -775,12 +793,12 @@ describe("SSEClientTransport", () => {
 
         if (req.url === "/.well-known/oauth-protected-resource") {
           res.writeHead(200, {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           })
-          .end(JSON.stringify({
-            resource: resourceBaseUrl.href,
-            authorization_servers: [`${authBaseUrl}`],
-          }));
+            .end(JSON.stringify({
+              resource: resourceBaseUrl.href,
+              authorization_servers: [`${authBaseUrl}`],
+            }));
           return;
         }
 
@@ -806,25 +824,25 @@ describe("SSEClientTransport", () => {
               return;
             }
 
-          const auth = req.headers.authorization;
-          if (auth === "Bearer expired-token") {
+            const auth = req.headers.authorization;
+            if (auth === "Bearer expired-token") {
+              res.writeHead(401).end();
+              return;
+            }
+
+            if (auth === "Bearer new-token") {
+              res.writeHead(200).end();
+              postAttempts++;
+              return;
+            }
+
             res.writeHead(401).end();
-            return;
-          }
-
-          if (auth === "Bearer new-token") {
-            res.writeHead(200).end();
-            postAttempts++;
-            return;
-          }
-
-          res.writeHead(401).end();
             break;
           }
         }
       });
 
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         resourceServer.listen(0, "127.0.0.1", () => {
           const addr = resourceServer.address() as AddressInfo;
           resourceBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -850,7 +868,7 @@ describe("SSEClientTransport", () => {
       expect(mockAuthProvider.saveTokens).toHaveBeenCalledWith({
         access_token: "new-token",
         token_type: "Bearer",
-        refresh_token: "new-refresh-token"
+        refresh_token: "new-refresh-token",
       });
       expect(postAttempts).toBe(1);
       expect(lastServerRequest.headers.authorization).toBe("Bearer new-token");
@@ -861,7 +879,7 @@ describe("SSEClientTransport", () => {
       let currentTokens: OAuthTokens = {
         access_token: "expired-token",
         token_type: "Bearer",
-        refresh_token: "refresh-token"
+        refresh_token: "refresh-token",
       };
       mockAuthProvider.tokens.mockImplementation(() => currentTokens);
       mockAuthProvider.saveTokens.mockImplementation((tokens) => {
@@ -885,12 +903,10 @@ describe("SSEClientTransport", () => {
         }
 
         res.writeHead(401).end();
-
       });
 
-
       // Start auth server on random port
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         authServer.listen(0, "127.0.0.1", () => {
           const addr = authServer.address() as AddressInfo;
           authBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);
@@ -903,12 +919,12 @@ describe("SSEClientTransport", () => {
 
         if (req.url === "/.well-known/oauth-protected-resource") {
           res.writeHead(200, {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           })
-          .end(JSON.stringify({
-            resource: resourceBaseUrl.href,
-            authorization_servers: [`${authBaseUrl}`],
-          }));
+            .end(JSON.stringify({
+              resource: resourceBaseUrl.href,
+              authorization_servers: [`${authBaseUrl}`],
+            }));
           return;
         }
 
@@ -919,7 +935,7 @@ describe("SSEClientTransport", () => {
         res.writeHead(401).end();
       });
 
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         resourceServer.listen(0, "127.0.0.1", () => {
           const addr = resourceServer.address() as AddressInfo;
           resourceBaseUrl = new URL(`http://127.0.0.1:${addr.port}`);

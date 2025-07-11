@@ -1,24 +1,24 @@
-import { Client } from '../../client/index.js';
-import { StreamableHTTPClientTransport } from '../../client/streamableHttp.js';
+import { Client } from "../../client/index.js";
+import { StreamableHTTPClientTransport } from "../../client/streamableHttp.js";
 import {
   CallToolRequest,
+  CallToolResult,
   CallToolResultSchema,
   LoggingMessageNotificationSchema,
-  CallToolResult,
-} from '../../types.js';
+} from "../../types.js";
 
 /**
  * Multiple Clients MCP Example
- * 
+ *
  * This client demonstrates how to:
  * 1. Create multiple MCP clients in parallel
- * 2. Each client calls a single tool 
+ * 2. Each client calls a single tool
  * 3. Track notifications from each client independently
  */
 
 // Command line args processing
 const args = process.argv.slice(2);
-const serverUrl = args[0] || 'http://localhost:3000/mcp';
+const serverUrl = args[0] || "http://localhost:3000/mcp";
 
 interface ClientConfig {
   id: string;
@@ -27,12 +27,14 @@ interface ClientConfig {
   toolArguments: Record<string, string | number | boolean>;
 }
 
-async function createAndRunClient(config: ClientConfig): Promise<{ id: string; result: CallToolResult }> {
+async function createAndRunClient(
+  config: ClientConfig,
+): Promise<{ id: string; result: CallToolResult }> {
   console.log(`[${config.id}] Creating client: ${config.name}`);
 
   const client = new Client({
     name: config.name,
-    version: '1.0.0'
+    version: "1.0.0",
   });
 
   const transport = new StreamableHTTPClientTransport(new URL(serverUrl));
@@ -43,9 +45,12 @@ async function createAndRunClient(config: ClientConfig): Promise<{ id: string; r
   };
 
   // Set up client-specific notification handler
-  client.setNotificationHandler(LoggingMessageNotificationSchema, (notification) => {
-    console.log(`[${config.id}] Notification: ${notification.params.data}`);
-  });
+  client.setNotificationHandler(
+    LoggingMessageNotificationSchema,
+    (notification) => {
+      console.log(`[${config.id}] Notification: ${notification.params.data}`);
+    },
+  );
 
   try {
     // Connect to the server
@@ -55,22 +60,22 @@ async function createAndRunClient(config: ClientConfig): Promise<{ id: string; r
     // Call the specified tool
     console.log(`[${config.id}] Calling tool: ${config.toolName}`);
     const toolRequest: CallToolRequest = {
-      method: 'tools/call',
+      method: "tools/call",
       params: {
         name: config.toolName,
         arguments: {
           ...config.toolArguments,
           // Add client ID to arguments for identification in notifications
-          caller: config.id
-        }
-      }
+          caller: config.id,
+        },
+      },
     };
 
     const result = await client.request(toolRequest, CallToolResultSchema);
     console.log(`[${config.id}] Tool call completed`);
 
     // Keep the connection open for a bit to receive notifications
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
     // Disconnect
     await transport.close();
@@ -84,57 +89,59 @@ async function createAndRunClient(config: ClientConfig): Promise<{ id: string; r
 }
 
 async function main(): Promise<void> {
-  console.log('MCP Multiple Clients Example');
-  console.log('============================');
+  console.log("MCP Multiple Clients Example");
+  console.log("============================");
   console.log(`Server URL: ${serverUrl}`);
-  console.log('');
+  console.log("");
 
   try {
     // Define client configurations
     const clientConfigs: ClientConfig[] = [
       {
-        id: 'client1',
-        name: 'basic-client-1',
-        toolName: 'start-notification-stream',
+        id: "client1",
+        name: "basic-client-1",
+        toolName: "start-notification-stream",
         toolArguments: {
           interval: 3, // 1 second between notifications
-          count: 5     // Send 5 notifications
-        }
+          count: 5, // Send 5 notifications
+        },
       },
       {
-        id: 'client2',
-        name: 'basic-client-2',
-        toolName: 'start-notification-stream',
+        id: "client2",
+        name: "basic-client-2",
+        toolName: "start-notification-stream",
         toolArguments: {
           interval: 2, // 2 seconds between notifications
-          count: 3     // Send 3 notifications
-        }
+          count: 3, // Send 3 notifications
+        },
       },
       {
-        id: 'client3',
-        name: 'basic-client-3',
-        toolName: 'start-notification-stream',
+        id: "client3",
+        name: "basic-client-3",
+        toolName: "start-notification-stream",
         toolArguments: {
           interval: 1, // 0.5 second between notifications
-          count: 8       // Send 8 notifications
-        }
-      }
+          count: 8, // Send 8 notifications
+        },
+      },
     ];
 
     // Start all clients in parallel
     console.log(`Starting ${clientConfigs.length} clients in parallel...`);
-    console.log('');
+    console.log("");
 
-    const clientPromises = clientConfigs.map(config => createAndRunClient(config));
+    const clientPromises = clientConfigs.map((config) =>
+      createAndRunClient(config)
+    );
     const results = await Promise.all(clientPromises);
 
     // Display results from all clients
-    console.log('\n=== Final Results ===');
+    console.log("\n=== Final Results ===");
     results.forEach(({ id, result }) => {
       console.log(`\n[${id}] Tool result:`);
       if (Array.isArray(result.content)) {
         result.content.forEach((item: { type: string; text?: string }) => {
-          if (item.type === 'text' && item.text) {
+          if (item.type === "text" && item.text) {
             console.log(`  ${item.text}`);
           } else {
             console.log(`  ${item.type} content:`, item);
@@ -145,16 +152,15 @@ async function main(): Promise<void> {
       }
     });
 
-    console.log('\n=== All clients completed successfully ===');
-
+    console.log("\n=== All clients completed successfully ===");
   } catch (error) {
-    console.error('Error running multiple clients:', error);
+    console.error("Error running multiple clients:", error);
     process.exit(1);
   }
 }
 
 // Start the example
 main().catch((error: unknown) => {
-  console.error('Error running MCP multiple clients example:', error);
+  console.error("Error running MCP multiple clients example:", error);
   process.exit(1);
 });

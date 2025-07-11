@@ -16,7 +16,10 @@ export class InMemoryTransport implements Transport {
 
   onclose?: () => void;
   onerror?: (error: Error) => void;
-  onmessage?: (message: JSONRPCMessage, extra?: { authInfo?: AuthInfo }) => void;
+  onmessage?: (
+    message: JSONRPCMessage,
+    extra?: { authInfo?: AuthInfo },
+  ) => void;
   sessionId?: string;
 
   /**
@@ -49,7 +52,10 @@ export class InMemoryTransport implements Transport {
    * Sends a message with optional auth info.
    * This is useful for testing authentication scenarios.
    */
-  async send(message: JSONRPCMessage, options?: { relatedRequestId?: RequestId, authInfo?: AuthInfo }): Promise<void> {
+  async send(
+    message: JSONRPCMessage,
+    options?: { relatedRequestId?: RequestId; authInfo?: AuthInfo },
+  ): Promise<void> {
     if (!this._otherTransport) {
       throw new Error("Not connected");
     }
@@ -57,7 +63,10 @@ export class InMemoryTransport implements Transport {
     if (this._otherTransport.onmessage) {
       this._otherTransport.onmessage(message, { authInfo: options?.authInfo });
     } else {
-      this._otherTransport._messageQueue.push({ message, extra: { authInfo: options?.authInfo } });
+      this._otherTransport._messageQueue.push({
+        message,
+        extra: { authInfo: options?.authInfo },
+      });
     }
   }
 }

@@ -37,7 +37,9 @@ export class UriTemplate {
   >;
 
   get variableNames(): string[] {
-    return this.parts.flatMap((part) => typeof part === 'string' ? [] : part.names);
+    return this.parts.flatMap((part) =>
+      typeof part === "string" ? [] : part.names
+    );
   }
 
   constructor(template: string) {

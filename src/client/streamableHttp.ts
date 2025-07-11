@@ -1,15 +1,28 @@
-import { Transport, FetchLike } from "../shared/transport.js";
-import { isInitializedNotification, isJSONRPCRequest, isJSONRPCResponse, JSONRPCMessage, JSONRPCMessageSchema } from "../types.js";
-import { auth, AuthResult, extractResourceMetadataUrl, OAuthClientProvider, UnauthorizedError } from "./auth.js";
+import { FetchLike, Transport } from "../shared/transport.js";
+import {
+  isInitializedNotification,
+  isJSONRPCRequest,
+  isJSONRPCResponse,
+  JSONRPCMessage,
+  JSONRPCMessageSchema,
+} from "../types.js";
+import {
+  auth,
+  AuthResult,
+  extractResourceMetadataUrl,
+  OAuthClientProvider,
+  UnauthorizedError,
+} from "./auth.js";
 import { EventSourceParserStream } from "eventsource-parser/stream";
 
 // Default reconnection options for StreamableHTTP connections
-const DEFAULT_STREAMABLE_HTTP_RECONNECTION_OPTIONS: StreamableHTTPReconnectionOptions = {
-  initialReconnectionDelay: 1000,
-  maxReconnectionDelay: 30000,
-  reconnectionDelayGrowFactor: 1.5,
-  maxRetries: 2,
-};
+const DEFAULT_STREAMABLE_HTTP_RECONNECTION_OPTIONS:
+  StreamableHTTPReconnectionOptions = {
+    initialReconnectionDelay: 1000,
+    maxReconnectionDelay: 30000,
+    reconnectionDelayGrowFactor: 1.5,
+    maxRetries: 2,
+  };
 
 export class StreamableHTTPError extends Error {
   constructor(
@@ -39,9 +52,9 @@ export interface StartSSEOptions {
   onresumptiontoken?: (token: string) => void;
 
   /**
-  * Override Message ID to associate with the replay message
-  * so that response can be associate with the new resumed request.
-  */
+   * Override Message ID to associate with the replay message
+   * so that response can be associate with the new resumed request.
+   */
   replayMessageId?: string | number;
 }
 
@@ -146,7 +159,8 @@ export class StreamableHTTPClientTransport implements Transport {
     this._authProvider = opts?.authProvider;
     this._fetch = opts?.fetch;
     this._sessionId = opts?.sessionId;
-    this._reconnectionOptions = opts?.reconnectionOptions ?? DEFAULT_STREAMABLE_HTTP_RECONNECTION_OPTIONS;
+    this._reconnectionOptions = opts?.reconnectionOptions ??
+      DEFAULT_STREAMABLE_HTTP_RECONNECTION_OPTIONS;
   }
 
   private async _authThenStart(): Promise<void> {
@@ -156,7 +170,10 @@ export class StreamableHTTPClientTransport implements Transport {
 
     let result: AuthResult;
     try {
-      result = await auth(this._authProvider, { serverUrl: this._url, resourceMetadataUrl: this._resourceMetadataUrl });
+      result = await auth(this._authProvider, {
+        serverUrl: this._url,
+        resourceMetadataUrl: this._resourceMetadataUrl,
+      });
     } catch (error) {
       this.onerror?.(error as Error);
       throw error;
@@ -193,7 +210,6 @@ export class StreamableHTTPClientTransport implements Transport {
     });
   }
 
-
   private async _startOrAuthSse(options: StartSSEOptions): Promise<void> {
     const { resumptionToken } = options;
     try {
@@ -207,7 +223,7 @@ export class StreamableHTTPClientTransport implements Transport {
         headers.set("last-event-id", resumptionToken);
       }
 
-const response = await (this._fetch ?? fetch)(this._url, {
+      const response = await (this._fetch ?? fetch)(this._url, {
         method: "GET",
         headers,
         signal: this._abortController?.signal,
@@ -238,7 +254,6 @@ const response = await (this._fetch ?? fetch)(this._url, {
     }
   }
 
-
   /**
    * Calculates the next reconnection delay using  backoff algorithm
    *
@@ -253,10 +268,11 @@ const response = await (this._fetch ?? fetch)(this._url, {
 
     // Cap at maximum delay
     return Math.min(initialDelay * Math.pow(growFactor, attempt), maxDelay);
-
   }
 
-    private _normalizeHeaders(headers: HeadersInit | undefined): Record<string, string> {
+  private _normalizeHeaders(
+    headers: HeadersInit | undefined,
+  ): Record<string, string> {
     if (!headers) return {};
 
     if (headers instanceof Headers) {
@@ -276,13 +292,18 @@ const response = await (this._fetch ?? fetch)(this._url, {
    * @param lastEventId The ID of the last received event for resumability
    * @param attemptCount Current reconnection attempt count for this specific stream
    */
-  private _scheduleReconnection(options: StartSSEOptions, attemptCount = 0): void {
+  private _scheduleReconnection(
+    options: StartSSEOptions,
+    attemptCount = 0,
+  ): void {
     // Use provided options or default options
     const maxRetries = this._reconnectionOptions.maxRetries;
 
     // Check if we've exceeded maximum retry attempts
     if (maxRetries > 0 && attemptCount >= maxRetries) {
-      this.onerror?.(new Error(`Maximum reconnection attempts (${maxRetries}) exceeded.`));
+      this.onerror?.(
+        new Error(`Maximum reconnection attempts (${maxRetries}) exceeded.`),
+      );
       return;
     }
 
@@ -292,15 +313,24 @@ const response = await (this._fetch ?? fetch)(this._url, {
     // Schedule the reconnection
     setTimeout(() => {
       // Use the last event ID to resume where we left off
-      this._startOrAuthSse(options).catch(error => {
-        this.onerror?.(new Error(`Failed to reconnect SSE stream: ${error instanceof Error ? error.message : String(error)}`));
+      this._startOrAuthSse(options).catch((error) => {
+        this.onerror?.(
+          new Error(
+            `Failed to reconnect SSE stream: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          ),
+        );
         // Schedule another attempt if this one failed, incrementing the attempt counter
         this._scheduleReconnection(options, attemptCount + 1);
       });
     }, delay);
   }
 
-  private _handleSseStream(stream: ReadableStream<Uint8Array> | null, options: StartSSEOptions): void {
+  private _handleSseStream(
+    stream: ReadableStream<Uint8Array> | null,
+    options: StartSSEOptions,
+  ): void {
     if (!stream) {
       return;
     }
@@ -317,7 +347,6 @@ const response = await (this._fetch ?? fetch)(this._url, {
           .pipeThrough(new EventSourceParserStream())
           .getReader();
 
-
         while (true) {
           const { value: event, done } = await reader.read();
           if (done) {
@@ -332,7 +361,9 @@ const response = await (this._fetch ?? fetch)(this._url, {
 
           if (!event.event || event.event === "message") {
             try {
-              const message = JSONRPCMessageSchema.parse(JSON.parse(event.data));
+              const message = JSONRPCMessageSchema.parse(
+                JSON.parse(event.data),
+              );
               if (replayMessageId !== undefined && isJSONRPCResponse(message)) {
                 message.id = replayMessageId;
               }
@@ -354,12 +385,16 @@ const response = await (this._fetch ?? fetch)(this._url, {
               this._scheduleReconnection({
                 resumptionToken: lastEventId,
                 onresumptiontoken,
-                replayMessageId
+                replayMessageId,
               }, 0);
-            }
-            catch (error) {
-              this.onerror?.(new Error(`Failed to reconnect: ${error instanceof Error ? error.message : String(error)}`));
-
+            } catch (error) {
+              this.onerror?.(
+                new Error(
+                  `Failed to reconnect: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`,
+                ),
+              );
             }
           }
         }
@@ -386,7 +421,11 @@ const response = await (this._fetch ?? fetch)(this._url, {
       throw new UnauthorizedError("No auth provider");
     }
 
-    const result = await auth(this._authProvider, { serverUrl: this._url, authorizationCode, resourceMetadataUrl: this._resourceMetadataUrl });
+    const result = await auth(this._authProvider, {
+      serverUrl: this._url,
+      authorizationCode,
+      resourceMetadataUrl: this._resourceMetadataUrl,
+    });
     if (result !== "AUTHORIZED") {
       throw new UnauthorizedError("Failed to authorize");
     }
@@ -399,13 +438,22 @@ const response = await (this._fetch ?? fetch)(this._url, {
     this.onclose?.();
   }
 
-  async send(message: JSONRPCMessage | JSONRPCMessage[], options?: { resumptionToken?: string, onresumptiontoken?: (token: string) => void }): Promise<void> {
+  async send(
+    message: JSONRPCMessage | JSONRPCMessage[],
+    options?: {
+      resumptionToken?: string;
+      onresumptiontoken?: (token: string) => void;
+    },
+  ): Promise<void> {
     try {
       const { resumptionToken, onresumptiontoken } = options || {};
 
       if (resumptionToken) {
         // If we have at last event ID, we need to reconnect the SSE stream
-        this._startOrAuthSse({ resumptionToken, replayMessageId: isJSONRPCRequest(message) ? message.id : undefined }).catch(err => this.onerror?.(err));
+        this._startOrAuthSse({
+          resumptionToken,
+          replayMessageId: isJSONRPCRequest(message) ? message.id : undefined,
+        }).catch((err) => this.onerror?.(err));
         return;
       }
 
@@ -421,7 +469,7 @@ const response = await (this._fetch ?? fetch)(this._url, {
         signal: this._abortController?.signal,
       };
 
-const response = await (this._fetch ?? fetch)(this._url, init);
+      const response = await (this._fetch ?? fetch)(this._url, init);
 
       // Handle session ID received during initialization
       const sessionId = response.headers.get("mcp-session-id");
@@ -431,10 +479,12 @@ const response = await (this._fetch ?? fetch)(this._url, init);
 
       if (!response.ok) {
         if (response.status === 401 && this._authProvider) {
-
           this._resourceMetadataUrl = extractResourceMetadataUrl(response);
 
-          const result = await auth(this._authProvider, { serverUrl: this._url, resourceMetadataUrl: this._resourceMetadataUrl });
+          const result = await auth(this._authProvider, {
+            serverUrl: this._url,
+            resourceMetadataUrl: this._resourceMetadataUrl,
+          });
           if (result !== "AUTHORIZED") {
             throw new UnauthorizedError();
           }
@@ -455,7 +505,9 @@ const response = await (this._fetch ?? fetch)(this._url, init);
         // if it's supported by the server
         if (isInitializedNotification(message)) {
           // Start without a lastEventId since this is a fresh connection
-          this._startOrAuthSse({ resumptionToken: undefined }).catch(err => this.onerror?.(err));
+          this._startOrAuthSse({ resumptionToken: undefined }).catch((err) =>
+            this.onerror?.(err)
+          );
         }
         return;
       }
@@ -463,7 +515,9 @@ const response = await (this._fetch ?? fetch)(this._url, init);
       // Get original message(s) for detecting request IDs
       const messages = Array.isArray(message) ? message : [message];
 
-      const hasRequests = messages.filter(msg => "method" in msg && "id" in msg && msg.id !== undefined).length > 0;
+      const hasRequests = messages.filter((msg) =>
+        "method" in msg && "id" in msg && msg.id !== undefined
+      ).length > 0;
 
       // Check the response type
       const contentType = response.headers.get("content-type");
@@ -478,7 +532,9 @@ const response = await (this._fetch ?? fetch)(this._url, init);
           // For non-streaming servers, we might get direct JSON responses
           const data = await response.json();
           const responseMessages = Array.isArray(data)
-            ? data.map(msg => JSONRPCMessageSchema.parse(msg))
+            ? data.map((msg) =>
+              JSONRPCMessageSchema.parse(msg)
+            )
             : [JSONRPCMessageSchema.parse(data)];
 
           for (const msg of responseMessages) {
@@ -527,14 +583,14 @@ const response = await (this._fetch ?? fetch)(this._url, init);
         signal: this._abortController?.signal,
       };
 
-const response = await (this._fetch ?? fetch)(this._url, init);
+      const response = await (this._fetch ?? fetch)(this._url, init);
 
       // We specifically handle 405 as a valid response according to the spec,
       // meaning the server does not support explicit session termination
       if (!response.ok && response.status !== 405) {
         throw new StreamableHTTPError(
           response.status,
-          `Failed to terminate session: ${response.statusText}`
+          `Failed to terminate session: ${response.statusText}`,
         );
       }
 

@@ -1,7 +1,7 @@
 import { ChildProcess, IOType } from "node:child_process";
 import spawn from "cross-spawn";
 import process from "node:process";
-import { Stream, PassThrough } from "node:stream";
+import { PassThrough, Stream } from "node:stream";
 import { ReadBuffer, serializeMessage } from "../shared/stdio.js";
 import { Transport } from "../shared/transport.js";
 import { JSONRPCMessage } from "../types.js";
@@ -42,24 +42,23 @@ export type StdioServerParameters = {
 /**
  * Environment variables to inherit by default, if an environment is not explicitly given.
  */
-export const DEFAULT_INHERITED_ENV_VARS =
-  process.platform === "win32"
-    ? [
-        "APPDATA",
-        "HOMEDRIVE",
-        "HOMEPATH",
-        "LOCALAPPDATA",
-        "PATH",
-        "PROCESSOR_ARCHITECTURE",
-        "SYSTEMDRIVE",
-        "SYSTEMROOT",
-        "TEMP",
-        "USERNAME",
-        "USERPROFILE",
-        "PROGRAMFILES",
-      ]
-    : /* list inspired by the default env inheritance of sudo */
-      ["HOME", "LOGNAME", "PATH", "SHELL", "TERM", "USER"];
+export const DEFAULT_INHERITED_ENV_VARS = process.platform === "win32"
+  ? [
+    "APPDATA",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "LOCALAPPDATA",
+    "PATH",
+    "PROCESSOR_ARCHITECTURE",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "USERNAME",
+    "USERPROFILE",
+    "PROGRAMFILES",
+  ]
+  /* list inspired by the default env inheritance of sudo */
+  : ["HOME", "LOGNAME", "PATH", "SHELL", "TERM", "USER"];
 
 /**
  * Returns a default environment object including only environment variables deemed safe to inherit.
@@ -113,7 +112,7 @@ export class StdioClientTransport implements Transport {
   async start(): Promise<void> {
     if (this._process) {
       throw new Error(
-        "StdioClientTransport already started! If using Client class, note that connect() calls start() automatically."
+        "StdioClientTransport already started! If using Client class, note that connect() calls start() automatically.",
       );
     }
 
@@ -132,7 +131,7 @@ export class StdioClientTransport implements Transport {
           signal: this._abortController.signal,
           windowsHide: process.platform === "win32" && isElectron(),
           cwd: this._serverParams.cwd,
-        }
+        },
       );
 
       this._process.on("error", (error) => {

@@ -1,11 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Transport } from "../shared/transport.js";
-import { JSONRPCMessage, JSONRPCMessageSchema, MessageExtraInfo, RequestInfo } from "../types.js";
+import {
+  JSONRPCMessage,
+  JSONRPCMessageSchema,
+  MessageExtraInfo,
+  RequestInfo,
+} from "../types.js";
 import getRawBody from "raw-body";
 import contentType from "content-type";
 import { AuthInfo } from "./auth/types.js";
-import { URL } from 'url';
+import { URL } from "url";
 
 const MAXIMUM_MESSAGE_SIZE = "4mb";
 
@@ -18,13 +23,13 @@ export interface SSEServerTransportOptions {
    * If not specified, host validation is disabled.
    */
   allowedHosts?: string[];
-  
+
   /**
    * List of allowed origin header values for DNS rebinding protection.
    * If not specified, origin validation is disabled.
    */
   allowedOrigins?: string[];
-  
+
   /**
    * Enable DNS rebinding protection (requires allowedHosts and/or allowedOrigins to be configured).
    * Default is false for backwards compatibility.
@@ -54,7 +59,7 @@ export class SSEServerTransport implements Transport {
     options?: SSEServerTransportOptions,
   ) {
     this._sessionId = randomUUID();
-    this._options = options || {enableDnsRebindingProtection: false};
+    this._options = options || { enableDnsRebindingProtection: false };
   }
 
   /**
@@ -76,9 +81,13 @@ export class SSEServerTransport implements Transport {
     }
 
     // Validate Origin header if allowedOrigins is configured
-    if (this._options.allowedOrigins && this._options.allowedOrigins.length > 0) {
+    if (
+      this._options.allowedOrigins && this._options.allowedOrigins.length > 0
+    ) {
       const originHeader = req.headers.origin;
-      if (!originHeader || !this._options.allowedOrigins.includes(originHeader)) {
+      if (
+        !originHeader || !this._options.allowedOrigins.includes(originHeader)
+      ) {
         return `Invalid Origin header: ${originHeader}`;
       }
     }
@@ -107,12 +116,13 @@ export class SSEServerTransport implements Transport {
     // Send the endpoint event
     // Use a dummy base URL because this._endpoint is relative.
     // This allows using URL/URLSearchParams for robust parameter handling.
-    const dummyBase = 'http://localhost'; // Any valid base works
+    const dummyBase = "http://localhost"; // Any valid base works
     const endpointUrl = new URL(this._endpoint, dummyBase);
-    endpointUrl.searchParams.set('sessionId', this._sessionId);
+    endpointUrl.searchParams.set("sessionId", this._sessionId);
 
     // Reconstruct the relative URL string (pathname + search + hash)
-    const relativeUrlWithSession = endpointUrl.pathname + endpointUrl.search + endpointUrl.hash;
+    const relativeUrlWithSession = endpointUrl.pathname + endpointUrl.search +
+      endpointUrl.hash;
 
     this.res.write(
       `event: endpoint\ndata: ${relativeUrlWithSession}\n\n`,
@@ -170,7 +180,10 @@ export class SSEServerTransport implements Transport {
     }
 
     try {
-      await this.handleMessage(typeof body === 'string' ? JSON.parse(body) : body, { requestInfo, authInfo });
+      await this.handleMessage(
+        typeof body === "string" ? JSON.parse(body) : body,
+        { requestInfo, authInfo },
+      );
     } catch {
       res.writeHead(400).end(`Invalid message: ${body}`);
       return;
@@ -182,7 +195,10 @@ export class SSEServerTransport implements Transport {
   /**
    * Handle a client message, regardless of how it arrived. This can be used to inform the server of messages that arrive via a means different than HTTP POST.
    */
-  async handleMessage(message: unknown, extra?: MessageExtraInfo): Promise<void> {
+  async handleMessage(
+    message: unknown,
+    extra?: MessageExtraInfo,
+  ): Promise<void> {
     let parsedMessage: JSONRPCMessage;
     try {
       parsedMessage = JSONRPCMessageSchema.parse(message);

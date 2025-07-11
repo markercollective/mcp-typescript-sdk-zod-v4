@@ -6,11 +6,12 @@ import { McpServer, ResourceTemplate } from "./mcp.js";
 
 describe("Title field backwards compatibility", () => {
   it("should work with tools that have title", async () => {
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const [clientTransport, serverTransport] = InMemoryTransport
+      .createLinkedPair();
 
     const server = new McpServer(
       { name: "test-server", version: "1.0.0" },
-      { capabilities: {} }
+      { capabilities: {} },
     );
 
     // Register tool with title
@@ -20,10 +21,10 @@ describe("Title field backwards compatibility", () => {
         title: "Test Tool Display Name",
         description: "A test tool",
         inputSchema: {
-          value: z.string()
-        }
+          value: z.string(),
+        },
       },
-      async () => ({ content: [{ type: "text", text: "result" }] })
+      async () => ({ content: [{ type: "text", text: "result" }] }),
     );
 
     const client = new Client({ name: "test-client", version: "1.0.0" });
@@ -39,11 +40,12 @@ describe("Title field backwards compatibility", () => {
   });
 
   it("should work with tools without title", async () => {
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const [clientTransport, serverTransport] = InMemoryTransport
+      .createLinkedPair();
 
     const server = new McpServer(
       { name: "test-server", version: "1.0.0" },
-      { capabilities: {} }
+      { capabilities: {} },
     );
 
     // Register tool without title
@@ -51,7 +53,7 @@ describe("Title field backwards compatibility", () => {
       "test-tool",
       "A test tool",
       { value: z.string() },
-      async () => ({ content: [{ type: "text", text: "result" }] })
+      async () => ({ content: [{ type: "text", text: "result" }] }),
     );
 
     const client = new Client({ name: "test-client", version: "1.0.0" });
@@ -67,18 +69,21 @@ describe("Title field backwards compatibility", () => {
   });
 
   it("should work with prompts that have title using update", async () => {
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const [clientTransport, serverTransport] = InMemoryTransport
+      .createLinkedPair();
 
     const server = new McpServer(
       { name: "test-server", version: "1.0.0" },
-      { capabilities: {} }
+      { capabilities: {} },
     );
 
     // Register prompt with title by updating after creation
     const prompt = server.prompt(
       "test-prompt",
       "A test prompt",
-      async () => ({ messages: [{ role: "user", content: { type: "text", text: "test" } }] })
+      async () => ({
+        messages: [{ role: "user", content: { type: "text", text: "test" } }],
+      }),
     );
     prompt.update({ title: "Test Prompt Display Name" });
 
@@ -95,11 +100,12 @@ describe("Title field backwards compatibility", () => {
   });
 
   it("should work with prompts using registerPrompt", async () => {
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const [clientTransport, serverTransport] = InMemoryTransport
+      .createLinkedPair();
 
     const server = new McpServer(
       { name: "test-server", version: "1.0.0" },
-      { capabilities: {} }
+      { capabilities: {} },
     );
 
     // Register prompt with title using registerPrompt
@@ -108,14 +114,14 @@ describe("Title field backwards compatibility", () => {
       {
         title: "Test Prompt Display Name",
         description: "A test prompt",
-        argsSchema: { input: z.string() }
+        argsSchema: { input: z.string() },
       },
       async ({ input }) => ({
         messages: [{
           role: "user",
-          content: { type: "text", text: `test: ${input}` }
-        }]
-      })
+          content: { type: "text", text: `test: ${input}` },
+        }],
+      }),
     );
 
     const client = new Client({ name: "test-client", version: "1.0.0" });
@@ -132,11 +138,12 @@ describe("Title field backwards compatibility", () => {
   });
 
   it("should work with resources using registerResource", async () => {
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const [clientTransport, serverTransport] = InMemoryTransport
+      .createLinkedPair();
 
     const server = new McpServer(
       { name: "test-server", version: "1.0.0" },
-      { capabilities: {} }
+      { capabilities: {} },
     );
 
     // Register resource with title using registerResource
@@ -146,14 +153,14 @@ describe("Title field backwards compatibility", () => {
       {
         title: "Test Resource Display Name",
         description: "A test resource",
-        mimeType: "text/plain"
+        mimeType: "text/plain",
       },
       async () => ({
         contents: [{
           uri: "https://example.com/test",
-          text: "test content"
-        }]
-      })
+          text: "test content",
+        }],
+      }),
     );
 
     const client = new Client({ name: "test-client", version: "1.0.0" });
@@ -170,11 +177,12 @@ describe("Title field backwards compatibility", () => {
   });
 
   it("should work with dynamic resources using registerResource", async () => {
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const [clientTransport, serverTransport] = InMemoryTransport
+      .createLinkedPair();
 
     const server = new McpServer(
       { name: "test-server", version: "1.0.0" },
-      { capabilities: {} }
+      { capabilities: {} },
     );
 
     // Register dynamic resource with title using registerResource
@@ -183,14 +191,14 @@ describe("Title field backwards compatibility", () => {
       new ResourceTemplate("users://{userId}/profile", { list: undefined }),
       {
         title: "User Profile",
-        description: "User profile information"
+        description: "User profile information",
       },
       async (uri, { userId }, _extra) => ({
         contents: [{
           uri: uri.href,
-          text: `Profile data for user ${userId}`
-        }]
-      })
+          text: `Profile data for user ${userId}`,
+        }],
+      }),
     );
 
     const client = new Client({ name: "test-client", version: "1.0.0" });
@@ -202,25 +210,32 @@ describe("Title field backwards compatibility", () => {
     expect(resourceTemplates.resourceTemplates).toHaveLength(1);
     expect(resourceTemplates.resourceTemplates[0].name).toBe("user-profile");
     expect(resourceTemplates.resourceTemplates[0].title).toBe("User Profile");
-    expect(resourceTemplates.resourceTemplates[0].description).toBe("User profile information");
-    expect(resourceTemplates.resourceTemplates[0].uriTemplate).toBe("users://{userId}/profile");
+    expect(resourceTemplates.resourceTemplates[0].description).toBe(
+      "User profile information",
+    );
+    expect(resourceTemplates.resourceTemplates[0].uriTemplate).toBe(
+      "users://{userId}/profile",
+    );
 
     // Test reading the resource
-    const readResult = await client.readResource({ uri: "users://123/profile" });
+    const readResult = await client.readResource({
+      uri: "users://123/profile",
+    });
     expect(readResult.contents).toHaveLength(1);
     expect(readResult.contents[0].text).toBe("Profile data for user 123");
   });
 
   it("should support serverInfo with title", async () => {
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const [clientTransport, serverTransport] = InMemoryTransport
+      .createLinkedPair();
 
     const server = new Server(
       {
         name: "test-server",
         version: "1.0.0",
-        title: "Test Server Display Name"
+        title: "Test Server Display Name",
       },
-      { capabilities: {} }
+      { capabilities: {} },
     );
 
     const client = new Client({ name: "test-client", version: "1.0.0" });

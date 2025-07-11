@@ -1,15 +1,18 @@
 import express, { RequestHandler } from "express";
-import { OAuthClientInformationFull, OAuthClientMetadataSchema } from "../../../shared/auth.js";
-import crypto from 'node:crypto';
-import cors from 'cors';
+import {
+  OAuthClientInformationFull,
+  OAuthClientMetadataSchema,
+} from "../../../shared/auth.js";
+import crypto from "node:crypto";
+import cors from "cors";
 import { OAuthRegisteredClientsStore } from "../clients.js";
-import { rateLimit, Options as RateLimitOptions } from "express-rate-limit";
+import { Options as RateLimitOptions, rateLimit } from "express-rate-limit";
 import { allowedMethods } from "../middleware/allowedMethods.js";
 import {
   InvalidClientMetadataError,
+  OAuthError,
   ServerError,
   TooManyRequestsError,
-  OAuthError
 } from "../errors.js";
 
 export type ClientRegistrationHandlerOptions = {
@@ -20,7 +23,7 @@ export type ClientRegistrationHandlerOptions = {
 
   /**
    * The number of seconds after which to expire issued client secrets, or 0 to prevent expiration of client secrets (not recommended).
-   * 
+   *
    * If not set, defaults to 30 days.
    */
   clientSecretExpirySeconds?: number;
@@ -38,10 +41,12 @@ const DEFAULT_CLIENT_SECRET_EXPIRY_SECONDS = 30 * 24 * 60 * 60; // 30 days
 export function clientRegistrationHandler({
   clientsStore,
   clientSecretExpirySeconds = DEFAULT_CLIENT_SECRET_EXPIRY_SECONDS,
-  rateLimit: rateLimitConfig
+  rateLimit: rateLimitConfig,
 }: ClientRegistrationHandlerOptions): RequestHandler {
   if (!clientsStore.registerClient) {
-    throw new Error("Client registration store does not support registering clients");
+    throw new Error(
+      "Client registration store does not support registering clients",
+    );
   }
 
   // Nested router so we can configure middleware and restrict HTTP method
@@ -60,13 +65,15 @@ export function clientRegistrationHandler({
       max: 20, // 20 requests per hour - stricter as registration is sensitive
       standardHeaders: true,
       legacyHeaders: false,
-      message: new TooManyRequestsError('You have exceeded the rate limit for client registration requests').toResponseObject(),
-      ...rateLimitConfig
+      message: new TooManyRequestsError(
+        "You have exceeded the rate limit for client registration requests",
+      ).toResponseObject(),
+      ...rateLimitConfig,
     }));
   }
 
   router.post("/", async (req, res) => {
-    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader("Cache-Control", "no-store");
 
     try {
       const parseResult = OAuthClientMetadataSchema.safeParse(req.body);
@@ -75,19 +82,24 @@ export function clientRegistrationHandler({
       }
 
       const clientMetadata = parseResult.data;
-      const isPublicClient = clientMetadata.token_endpoint_auth_method === 'none'
+      const isPublicClient =
+        clientMetadata.token_endpoint_auth_method === "none";
 
       // Generate client credentials
       const clientId = crypto.randomUUID();
       const clientSecret = isPublicClient
         ? undefined
-        : crypto.randomBytes(32).toString('hex');
+        : crypto.randomBytes(32).toString("hex");
       const clientIdIssuedAt = Math.floor(Date.now() / 1000);
 
       // Calculate client secret expiry time
-      const clientsDoExpire = clientSecretExpirySeconds > 0
-      const secretExpiryTime = clientsDoExpire ? clientIdIssuedAt + clientSecretExpirySeconds : 0
-      const clientSecretExpiresAt = isPublicClient ? undefined : secretExpiryTime
+      const clientsDoExpire = clientSecretExpirySeconds > 0;
+      const secretExpiryTime = clientsDoExpire
+        ? clientIdIssuedAt + clientSecretExpirySeconds
+        : 0;
+      const clientSecretExpiresAt = isPublicClient
+        ? undefined
+        : secretExpiryTime;
 
       let clientInfo: OAuthClientInformationFull = {
         ...clientMetadata,

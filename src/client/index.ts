@@ -16,6 +16,7 @@ import {
   CompleteRequest,
   CompleteResultSchema,
   EmptyResultSchema,
+  ErrorCode,
   GetPromptRequest,
   GetPromptResultSchema,
   Implementation,
@@ -30,6 +31,7 @@ import {
   ListToolsRequest,
   ListToolsResultSchema,
   LoggingLevel,
+  McpError,
   Notification,
   ReadResourceRequest,
   ReadResourceResultSchema,
@@ -38,10 +40,8 @@ import {
   ServerCapabilities,
   SubscribeRequest,
   SUPPORTED_PROTOCOL_VERSIONS,
-  UnsubscribeRequest,
   Tool,
-  ErrorCode,
-  McpError,
+  UnsubscribeRequest,
 } from "../types.js";
 import Ajv from "ajv";
 import type { ValidateFunction } from "ajv";
@@ -91,7 +91,8 @@ export class Client<
   private _serverVersion?: Implementation;
   private _capabilities: ClientCapabilities;
   private _instructions?: string;
-  private _cachedToolOutputValidators: Map<string, ValidateFunction> = new Map();
+  private _cachedToolOutputValidators: Map<string, ValidateFunction> =
+    new Map();
   private _ajv: InstanceType<typeof Ajv>;
 
   /**
@@ -132,7 +133,10 @@ export class Client<
     }
   }
 
-  override async connect(transport: Transport, options?: RequestOptions): Promise<void> {
+  override async connect(
+    transport: Transport,
+    options?: RequestOptions,
+  ): Promise<void> {
     await super.connect(transport);
     // When transport sessionId is already set this means we are trying to reconnect.
     // In this case we don't need to initialize again.
@@ -150,7 +154,7 @@ export class Client<
           },
         },
         InitializeResultSchema,
-        options
+        options,
       );
 
       if (result === undefined) {
@@ -446,7 +450,7 @@ export class Client<
       if (!result.structuredContent && !result.isError) {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          `Tool ${params.name} has an output schema but did not return structured content`
+          `Tool ${params.name} has an output schema but did not return structured content`,
         );
       }
 
@@ -459,7 +463,9 @@ export class Client<
           if (!isValid) {
             throw new McpError(
               ErrorCode.InvalidParams,
-              `Structured content does not match the tool's output schema: ${this._ajv.errorsText(validator.errors)}`
+              `Structured content does not match the tool's output schema: ${
+                this._ajv.errorsText(validator.errors)
+              }`,
             );
           }
         } catch (error) {
@@ -468,7 +474,9 @@ export class Client<
           }
           throw new McpError(
             ErrorCode.InvalidParams,
-            `Failed to validate structured content: ${error instanceof Error ? error.message : String(error)}`
+            `Failed to validate structured content: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
           );
         }
       }
@@ -493,7 +501,9 @@ export class Client<
     }
   }
 
-  private getToolOutputValidator(toolName: string): ValidateFunction | undefined {
+  private getToolOutputValidator(
+    toolName: string,
+  ): ValidateFunction | undefined {
     return this._cachedToolOutputValidators.get(toolName);
   }
 

@@ -2,15 +2,15 @@ import { RequestHandler } from "express";
 import { z } from "zod/v4";
 import express from "express";
 import { OAuthServerProvider } from "../provider.js";
-import { rateLimit, Options as RateLimitOptions } from "express-rate-limit";
+import { Options as RateLimitOptions, rateLimit } from "express-rate-limit";
 import { allowedMethods } from "../middleware/allowedMethods.js";
 import {
-  InvalidRequestError,
   InvalidClientError,
+  InvalidRequestError,
   InvalidScopeError,
+  OAuthError,
   ServerError,
   TooManyRequestsError,
-  OAuthError
 } from "../errors.js";
 
 export type AuthorizationHandlerOptions = {
@@ -25,7 +25,10 @@ export type AuthorizationHandlerOptions = {
 // Parameters that must be validated in order to issue redirects.
 const ClientAuthorizationParamsSchema = z.object({
   client_id: z.string(),
-  redirect_uri: z.string().optional().refine((value) => value === undefined || URL.canParse(value), { message: "redirect_uri must be a valid URL" }),
+  redirect_uri: z.string().optional().refine(
+    (value) => value === undefined || URL.canParse(value),
+    { message: "redirect_uri must be a valid URL" },
+  ),
 });
 
 // Parameters that must be validated for a successful authorization request. Failure can be reported to the redirect URI.
@@ -38,7 +41,9 @@ const RequestAuthorizationParamsSchema = z.object({
   resource: z.string().url().optional(),
 });
 
-export function authorizationHandler({ provider, rateLimit: rateLimitConfig }: AuthorizationHandlerOptions): RequestHandler {
+export function authorizationHandler(
+  { provider, rateLimit: rateLimitConfig }: AuthorizationHandlerOptions,
+): RequestHandler {
   // Create a router to apply middleware
   const router = express.Router();
   router.use(allowedMethods(["GET", "POST"]));
@@ -51,13 +56,15 @@ export function authorizationHandler({ provider, rateLimit: rateLimitConfig }: A
       max: 100, // 100 requests per windowMs
       standardHeaders: true,
       legacyHeaders: false,
-      message: new TooManyRequestsError('You have exceeded the rate limit for authorization requests').toResponseObject(),
-      ...rateLimitConfig
+      message: new TooManyRequestsError(
+        "You have exceeded the rate limit for authorization requests",
+      ).toResponseObject(),
+      ...rateLimitConfig,
     }));
   }
 
   router.all("/", async (req, res) => {
-    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader("Cache-Control", "no-store");
 
     // In the authorization flow, errors are split into two categories:
     // 1. Pre-redirect errors (direct response with 400)
@@ -66,7 +73,9 @@ export function authorizationHandler({ provider, rateLimit: rateLimitConfig }: A
     // Phase 1: Validate client_id and redirect_uri. Any errors here must be direct responses.
     let client_id, redirect_uri, client;
     try {
-      const result = ClientAuthorizationParamsSchema.safeParse(req.method === 'POST' ? req.body : req.query);
+      const result = ClientAuthorizationParamsSchema.safeParse(
+        req.method === "POST" ? req.body : req.query,
+      );
       if (!result.success) {
         throw new InvalidRequestError(result.error.message);
       }
@@ -86,7 +95,9 @@ export function authorizationHandler({ provider, rateLimit: rateLimitConfig }: A
       } else if (client.redirect_uris.length === 1) {
         redirect_uri = client.redirect_uris[0];
       } else {
-        throw new InvalidRequestError("redirect_uri must be specified when client has multiple registered URIs");
+        throw new InvalidRequestError(
+          "redirect_uri must be specified when client has multiple registered URIs",
+        );
       }
     } catch (error) {
       // Pre-redirect errors - return direct response
@@ -110,7 +121,9 @@ export function authorizationHandler({ provider, rateLimit: rateLimitConfig }: A
     let state;
     try {
       // Parse and validate authorization parameters
-      const parseResult = RequestAuthorizationParamsSchema.safeParse(req.method === 'POST' ? req.body : req.query);
+      const parseResult = RequestAuthorizationParamsSchema.safeParse(
+        req.method === "POST" ? req.body : req.query,
+      );
       if (!parseResult.success) {
         throw new InvalidRequestError(parseResult.error.message);
       }
@@ -127,7 +140,9 @@ export function authorizationHandler({ provider, rateLimit: rateLimitConfig }: A
         // Check each requested scope against allowed scopes
         for (const scope of requestedScopes) {
           if (!allowedScopes.has(scope)) {
-            throw new InvalidScopeError(`Client was not registered with scope ${scope}`);
+            throw new InvalidScopeError(
+              `Client was not registered with scope ${scope}`,
+            );
           }
         }
       }
@@ -146,7 +161,10 @@ export function authorizationHandler({ provider, rateLimit: rateLimitConfig }: A
         res.redirect(302, createErrorRedirect(redirect_uri, error, state));
       } else {
         const serverError = new ServerError("Internal Server Error");
-        res.redirect(302, createErrorRedirect(redirect_uri, serverError, state));
+        res.redirect(
+          302,
+          createErrorRedirect(redirect_uri, serverError, state),
+        );
       }
     }
   });
@@ -157,7 +175,11 @@ export function authorizationHandler({ provider, rateLimit: rateLimitConfig }: A
 /**
  * Helper function to create redirect URL with error parameters
  */
-function createErrorRedirect(redirectUri: string, error: OAuthError, state?: string): string {
+function createErrorRedirect(
+  redirectUri: string,
+  error: OAuthError,
+  state?: string,
+): string {
   const errorUrl = new URL(redirectUri);
   errorUrl.searchParams.set("error", error.errorCode);
   errorUrl.searchParams.set("error_description", error.message);

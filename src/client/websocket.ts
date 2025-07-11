@@ -29,10 +29,9 @@ export class WebSocketClientTransport implements Transport {
       this._socket = new WebSocket(this._url, SUBPROTOCOL);
 
       this._socket.onerror = (event) => {
-        const error =
-          "error" in event
-            ? (event.error as Error)
-            : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+        const error = "error" in event
+          ? (event.error as Error)
+          : new Error(`WebSocket error: ${JSON.stringify(event)}`);
         reject(error);
         this.onerror?.(error);
       };

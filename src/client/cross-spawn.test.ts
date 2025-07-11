@@ -1,4 +1,4 @@
-import { StdioClientTransport, getDefaultEnvironment } from "./stdio.js";
+import { getDefaultEnvironment, StdioClientTransport } from "./stdio.js";
 import spawn from "cross-spawn";
 import { JSONRPCMessage } from "../types.js";
 import { ChildProcess } from "node:child_process";
@@ -25,12 +25,12 @@ describe("StdioClientTransport using cross-spawn", () => {
         }),
         stdin: {
           on: jest.fn(),
-          write: jest.fn().mockReturnValue(true)
+          write: jest.fn().mockReturnValue(true),
         },
         stdout: {
-          on: jest.fn()
+          on: jest.fn(),
         },
-        stderr: null
+        stderr: null,
       };
       return mockProcess as unknown as ChildProcess;
     });
@@ -43,7 +43,7 @@ describe("StdioClientTransport using cross-spawn", () => {
   test("should call cross-spawn correctly", async () => {
     const transport = new StdioClientTransport({
       command: "test-command",
-      args: ["arg1", "arg2"]
+      args: ["arg1", "arg2"],
     });
 
     await transport.start();
@@ -53,8 +53,8 @@ describe("StdioClientTransport using cross-spawn", () => {
       "test-command",
       ["arg1", "arg2"],
       expect.objectContaining({
-        shell: false
-      })
+        shell: false,
+      }),
     );
   });
 
@@ -62,7 +62,7 @@ describe("StdioClientTransport using cross-spawn", () => {
     const customEnv = { TEST_VAR: "test-value" };
     const transport = new StdioClientTransport({
       command: "test-command",
-      env: customEnv
+      env: customEnv,
     });
 
     await transport.start();
@@ -74,16 +74,16 @@ describe("StdioClientTransport using cross-spawn", () => {
       expect.objectContaining({
         env: {
           ...getDefaultEnvironment(),
-          ...customEnv
-        }
-      })
+          ...customEnv,
+        },
+      }),
     );
   });
 
   test("should use default environment when env is undefined", async () => {
     const transport = new StdioClientTransport({
       command: "test-command",
-      env: undefined
+      env: undefined,
     });
 
     await transport.start();
@@ -93,14 +93,14 @@ describe("StdioClientTransport using cross-spawn", () => {
       "test-command",
       [],
       expect.objectContaining({
-        env: getDefaultEnvironment()
-      })
+        env: getDefaultEnvironment(),
+      }),
     );
   });
 
   test("should send messages correctly", async () => {
     const transport = new StdioClientTransport({
-      command: "test-command"
+      command: "test-command",
     });
 
     // get the mock process object
@@ -125,12 +125,12 @@ describe("StdioClientTransport using cross-spawn", () => {
       stdin: {
         on: jest.fn(),
         write: jest.fn().mockReturnValue(true),
-        once: jest.fn()
+        once: jest.fn(),
       },
       stdout: {
-        on: jest.fn()
+        on: jest.fn(),
       },
-      stderr: null
+      stderr: null,
     };
 
     mockSpawn.mockReturnValue(mockProcess as unknown as ChildProcess);
@@ -141,7 +141,7 @@ describe("StdioClientTransport using cross-spawn", () => {
     const message: JSONRPCMessage = {
       jsonrpc: "2.0",
       id: "test-id",
-      method: "test-method"
+      method: "test-method",
     };
 
     await transport.send(message);

@@ -25,15 +25,16 @@ export type ProxyOptions = {
   endpoints: ProxyEndpoints;
 
   /**
-  * Function to verify access tokens and return auth info
-  */
+   * Function to verify access tokens and return auth info
+   */
   verifyAccessToken: (token: string) => Promise<AuthInfo>;
 
   /**
-  * Function to fetch client information from the upstream server
-  */
-  getClient: (clientId: string) => Promise<OAuthClientInformationFull | undefined>;
-
+   * Function to fetch client information from the upstream server
+   */
+  getClient: (
+    clientId: string,
+  ) => Promise<OAuthClientInformationFull | undefined>;
 };
 
 /**
@@ -42,13 +43,15 @@ export type ProxyOptions = {
 export class ProxyOAuthServerProvider implements OAuthServerProvider {
   protected readonly _endpoints: ProxyEndpoints;
   protected readonly _verifyAccessToken: (token: string) => Promise<AuthInfo>;
-  protected readonly _getClient: (clientId: string) => Promise<OAuthClientInformationFull | undefined>;
-  
+  protected readonly _getClient: (
+    clientId: string,
+  ) => Promise<OAuthClientInformationFull | undefined>;
+
   skipLocalPkceValidation = true;
 
   revokeToken?: (
     client: OAuthClientInformationFull,
-    request: OAuthTokenRevocationRequest
+    request: OAuthTokenRevocationRequest,
   ) => Promise<void>;
 
   constructor(options: ProxyOptions) {
@@ -58,7 +61,7 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
     if (options.endpoints?.revocationUrl) {
       this.revokeToken = async (
         client: OAuthClientInformationFull,
-        request: OAuthTokenRevocationRequest
+        request: OAuthTokenRevocationRequest,
       ) => {
         const revocationUrl = this._endpoints.revocationUrl;
 
@@ -87,7 +90,7 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
         if (!response.ok) {
           throw new ServerError(`Token revocation failed: ${response.status}`);
         }
-      }
+      };
     }
   }
 
@@ -106,20 +109,22 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
           });
 
           if (!response.ok) {
-            throw new ServerError(`Client registration failed: ${response.status}`);
+            throw new ServerError(
+              `Client registration failed: ${response.status}`,
+            );
           }
 
           const data = await response.json();
           return OAuthClientInformationFullSchema.parse(data);
-        }
-      })
-    }
+        },
+      }),
+    };
   }
 
   async authorize(
     client: OAuthClientInformationFull,
     params: AuthorizationParams,
-    res: Response
+    res: Response,
   ): Promise<void> {
     // Start with required OAuth parameters
     const targetUrl = new URL(this._endpoints.authorizationUrl);
@@ -128,12 +133,14 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
       response_type: "code",
       redirect_uri: params.redirectUri,
       code_challenge: params.codeChallenge,
-      code_challenge_method: "S256"
+      code_challenge_method: "S256",
     });
 
     // Add optional standard OAuth parameters
     if (params.state) searchParams.set("state", params.state);
-    if (params.scopes?.length) searchParams.set("scope", params.scopes.join(" "));
+    if (params.scopes?.length) {
+      searchParams.set("scope", params.scopes.join(" "));
+    }
     if (params.resource) searchParams.set("resource", params.resource.href);
 
     targetUrl.search = searchParams.toString();
@@ -142,7 +149,7 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
 
   async challengeForAuthorizationCode(
     _client: OAuthClientInformationFull,
-    _authorizationCode: string
+    _authorizationCode: string,
   ): Promise<string> {
     // In a proxy setup, we don't store the code challenge ourselves
     // Instead, we proxy the token request and let the upstream server validate it
@@ -154,7 +161,7 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
     authorizationCode: string,
     codeVerifier?: string,
     redirectUri?: string,
-    resource?: URL
+    resource?: URL,
   ): Promise<OAuthTokens> {
     const params = new URLSearchParams({
       grant_type: "authorization_code",
@@ -186,7 +193,6 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
       body: params.toString(),
     });
 
-
     if (!response.ok) {
       throw new ServerError(`Token exchange failed: ${response.status}`);
     }
@@ -199,9 +205,8 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
     client: OAuthClientInformationFull,
     refreshToken: string,
     scopes?: string[],
-    resource?: URL
+    resource?: URL,
   ): Promise<OAuthTokens> {
-
     const params = new URLSearchParams({
       grant_type: "refresh_token",
       client_id: client.client_id,
@@ -239,4 +244,4 @@ export class ProxyOAuthServerProvider implements OAuthServerProvider {
   async verifyAccessToken(token: string): Promise<AuthInfo> {
     return this._verifyAccessToken(token);
   }
-} 
+}

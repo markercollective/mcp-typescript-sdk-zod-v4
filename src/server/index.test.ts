@@ -4,18 +4,18 @@
 import { Server } from "./index.js";
 import { z } from "zod/v4";
 import {
-  RequestSchema,
-  NotificationSchema,
-  ResultSchema,
-  LATEST_PROTOCOL_VERSION,
-  SUPPORTED_PROTOCOL_VERSIONS,
   CreateMessageRequestSchema,
   ElicitRequestSchema,
+  ErrorCode,
+  LATEST_PROTOCOL_VERSION,
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  NotificationSchema,
+  RequestSchema,
+  ResultSchema,
   SetLevelRequestSchema,
-  ErrorCode
+  SUPPORTED_PROTOCOL_VERSIONS,
 } from "../types.js";
 import { Transport } from "../shared/transport.js";
 import { InMemoryTransport } from "../inMemory.js";
@@ -246,8 +246,8 @@ test("should respect client capabilities", async () => {
     };
   });
 
-  const [clientTransport, serverTransport] =
-    InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
 
   await Promise.all([
     client.connect(clientTransport),
@@ -300,12 +300,15 @@ test("should respect client elicitation capabilities", async () => {
   client.setRequestHandler(ElicitRequestSchema, (params) => ({
     action: "accept",
     content: {
-      username: params.params.message.includes("username") ? "test-user" : undefined,
+      username: params.params.message.includes("username")
+        ? "test-user"
+        : undefined,
       confirmed: true,
     },
   }));
 
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
 
   await Promise.all([
     client.connect(clientTransport),
@@ -392,7 +395,8 @@ test("should validate elicitation response against requested schema", async () =
     },
   }));
 
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
 
   await Promise.all([
     client.connect(clientTransport),
@@ -471,7 +475,8 @@ test("should reject elicitation response with invalid data", async () => {
     },
   }));
 
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
 
   await Promise.all([
     client.connect(clientTransport),
@@ -544,7 +549,8 @@ test("should allow elicitation reject and cancel without validation", async () =
     }
   });
 
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
 
   await Promise.all([
     client.connect(clientTransport),
@@ -569,7 +575,7 @@ test("should allow elicitation reject and cancel without validation", async () =
     action: "decline",
   });
 
-  // Test cancel - should not validate  
+  // Test cancel - should not validate
   await expect(
     server.elicitInput({
       message: "Please provide your name",
@@ -594,8 +600,8 @@ test("should respect server notification capabilities", async () => {
     },
   );
 
-  const [clientTransport, serverTransport] =
-    InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
 
   await server.connect(serverTransport);
 
@@ -765,8 +771,8 @@ test("should handle server cancelling a request", async () => {
     },
   );
 
-  const [clientTransport, serverTransport] =
-    InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
 
   await Promise.all([
     client.connect(clientTransport),
@@ -840,8 +846,8 @@ test("should handle request timeout", async () => {
     },
   );
 
-  const [clientTransport, serverTransport] =
-    InMemoryTransport.createLinkedPair();
+  const [clientTransport, serverTransport] = InMemoryTransport
+    .createLinkedPair();
 
   await Promise.all([
     client.connect(clientTransport),

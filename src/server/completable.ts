@@ -1,13 +1,4 @@
-import {
-  ZodTypeAny,
-  ZodTypeDef,
-  ZodType,
-  ParseInput,
-  ParseReturnType,
-  RawCreateParams,
-  ZodErrorMap,
-  ProcessedCreateParams,
-} from "zod/v4";
+import { core, ZodErrorMap, ZodType, ZodTypeAny } from "zod/v4";
 
 export enum McpZodTypeKind {
   Completable = "McpCompletable",
@@ -20,26 +11,22 @@ export type CompleteCallback<T extends ZodTypeAny = ZodTypeAny> = (
   },
 ) => T["_input"][] | Promise<T["_input"][]>;
 
-export interface CompletableDef<T extends ZodTypeAny = ZodTypeAny>
-  extends ZodTypeDef {
+export interface CompletableDef<T extends ZodTypeAny = ZodTypeAny> {
   type: T;
   complete: CompleteCallback<T>;
   typeName: McpZodTypeKind.Completable;
 }
 
-export class Completable<T extends ZodTypeAny> extends ZodType<
-  T["_output"],
-  CompletableDef<T>,
-  T["_input"]
-> {
-  _parse(input: ParseInput): ParseReturnType<this["_output"]> {
-    const { ctx } = this._processInputParams(input);
-    const data = ctx.data;
-    return this._def.type._parse({
-      data,
-      path: ctx.path,
-      parent: ctx,
-    });
+export class Completable<T extends ZodTypeAny> {
+  _def: CompletableDef<T>;
+
+  constructor(def: CompletableDef<T>) {
+    this._def = def;
+  }
+
+  parse(input: unknown): T["_output"] {
+    // In Zod v4, delegate parsing to the wrapped type
+    return this._def.type.parse(input);
   }
 
   unwrap() {
@@ -48,9 +35,7 @@ export class Completable<T extends ZodTypeAny> extends ZodType<
 
   static create = <T extends ZodTypeAny>(
     type: T,
-    params: RawCreateParams & {
-      complete: CompleteCallback<T>;
-    },
+    params: { complete: CompleteCallback<T> } & Record<string, unknown>,
   ): Completable<T> => {
     return new Completable({
       type,
@@ -71,28 +56,38 @@ export function completable<T extends ZodTypeAny>(
   return Completable.create(schema, { ...schema._def, complete });
 }
 
-// Not sure why this isn't exported from Zod:
-// https://github.com/colinhacks/zod/blob/f7ad26147ba291cb3fb257545972a8e00e767470/src/types.ts#L130
-function processCreateParams(params: RawCreateParams): ProcessedCreateParams {
+// Simplified params processing for Zod v4
+function processCreateParams(
+  params: Record<string, unknown>,
+): Record<string, unknown> {
   if (!params) return {};
-  const { errorMap, invalid_type_error, required_error, description } = params;
+  const { errorMap, invalid_type_error, required_error, description, message } =
+    params;
   if (errorMap && (invalid_type_error || required_error)) {
     throw new Error(
       `Can't use "invalid_type_error" or "required_error" in conjunction with custom error map.`,
     );
   }
   if (errorMap) return { errorMap: errorMap, description };
-  const customMap: ZodErrorMap = (iss, ctx) => {
-    const { message } = params;
-
-    if (iss.code === "invalid_enum_value") {
-      return { message: message ?? ctx.defaultError };
+  const customMap: ZodErrorMap = (issue: core.$ZodRawIssue) => {
+    if (issue.code === "invalid_value") {
+      return {
+        message: (message as string) ?? (issue.message || "Invalid value"),
+      };
     }
-    if (typeof ctx.data === "undefined") {
-      return { message: message ?? required_error ?? ctx.defaultError };
+    if (typeof issue.input === "undefined") {
+      return {
+        message: (message as string) ?? (required_error as string) ??
+          (issue.message || "Required"),
+      };
     }
-    if (iss.code !== "invalid_type") return { message: ctx.defaultError };
-    return { message: message ?? invalid_type_error ?? ctx.defaultError };
+    if (issue.code !== "invalid_type") {
+      return { message: issue.message || "Invalid" };
+    }
+    return {
+      message: (message as string) ?? (invalid_type_error as string) ??
+        (issue.message || "Invalid type"),
+    };
   };
   return { errorMap: customMap, description };
 }

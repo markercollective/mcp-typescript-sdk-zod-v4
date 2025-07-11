@@ -1,6 +1,10 @@
 import { Response } from "express";
 import { OAuthRegisteredClientsStore } from "./clients.js";
-import { OAuthClientInformationFull, OAuthTokenRevocationRequest, OAuthTokens } from "../../shared/auth.js";
+import {
+  OAuthClientInformationFull,
+  OAuthTokenRevocationRequest,
+  OAuthTokens,
+} from "../../shared/auth.js";
 import { AuthInfo } from "./types.js";
 
 export type AuthorizationParams = {
@@ -27,28 +31,40 @@ export interface OAuthServerProvider {
    * - In the successful case, the redirect MUST include the `code` and `state` (if present) query parameters.
    * - In the error case, the redirect MUST include the `error` query parameter, and MAY include an optional `error_description` query parameter.
    */
-  authorize(client: OAuthClientInformationFull, params: AuthorizationParams, res: Response): Promise<void>;
+  authorize(
+    client: OAuthClientInformationFull,
+    params: AuthorizationParams,
+    res: Response,
+  ): Promise<void>;
 
   /**
    * Returns the `codeChallenge` that was used when the indicated authorization began.
    */
-  challengeForAuthorizationCode(client: OAuthClientInformationFull, authorizationCode: string): Promise<string>;
+  challengeForAuthorizationCode(
+    client: OAuthClientInformationFull,
+    authorizationCode: string,
+  ): Promise<string>;
 
   /**
    * Exchanges an authorization code for an access token.
    */
   exchangeAuthorizationCode(
-    client: OAuthClientInformationFull, 
-    authorizationCode: string, 
+    client: OAuthClientInformationFull,
+    authorizationCode: string,
     codeVerifier?: string,
     redirectUri?: string,
-    resource?: URL
+    resource?: URL,
   ): Promise<OAuthTokens>;
 
   /**
    * Exchanges a refresh token for an access token.
    */
-  exchangeRefreshToken(client: OAuthClientInformationFull, refreshToken: string, scopes?: string[], resource?: URL): Promise<OAuthTokens>;
+  exchangeRefreshToken(
+    client: OAuthClientInformationFull,
+    refreshToken: string,
+    scopes?: string[],
+    resource?: URL,
+  ): Promise<OAuthTokens>;
 
   /**
    * Verifies an access token and returns information about it.
@@ -60,7 +76,10 @@ export interface OAuthServerProvider {
    *
    * If the given token is invalid or already revoked, this method should do nothing.
    */
-  revokeToken?(client: OAuthClientInformationFull, request: OAuthTokenRevocationRequest): Promise<void>;
+  revokeToken?(
+    client: OAuthClientInformationFull,
+    request: OAuthTokenRevocationRequest,
+  ): Promise<void>;
 
   /**
    * Whether to skip local PKCE validation.
@@ -71,7 +90,6 @@ export interface OAuthServerProvider {
    */
   skipLocalPkceValidation?: boolean;
 }
-
 
 /**
  * Slim implementation useful for token verification

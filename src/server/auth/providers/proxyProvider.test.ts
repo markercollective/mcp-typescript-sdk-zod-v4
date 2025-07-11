@@ -1,7 +1,10 @@
 import { Response } from "express";
 import { ProxyOAuthServerProvider, ProxyOptions } from "./proxyProvider.js";
 import { AuthInfo } from "../types.js";
-import { OAuthClientInformationFull, OAuthTokens } from "../../../shared/auth.js";
+import {
+  OAuthClientInformationFull,
+  OAuthTokens,
+} from "../../../shared/auth.js";
 import { ServerError } from "../errors.js";
 import { InvalidTokenError } from "../errors.js";
 import { InsufficientScopeError } from "../errors.js";
@@ -88,22 +91,30 @@ describe("Proxy OAuth Server Provider", () => {
           codeChallenge: "test-challenge",
           state: "test-state",
           scopes: ["read", "write"],
-          resource: new URL('https://api.example.com/resource'),
+          resource: new URL("https://api.example.com/resource"),
         },
-        mockResponse
+        mockResponse,
       );
 
       const expectedUrl = new URL("https://auth.example.com/authorize");
       expectedUrl.searchParams.set("client_id", "test-client");
       expectedUrl.searchParams.set("response_type", "code");
-      expectedUrl.searchParams.set("redirect_uri", "https://example.com/callback");
+      expectedUrl.searchParams.set(
+        "redirect_uri",
+        "https://example.com/callback",
+      );
       expectedUrl.searchParams.set("code_challenge", "test-challenge");
       expectedUrl.searchParams.set("code_challenge_method", "S256");
       expectedUrl.searchParams.set("state", "test-state");
       expectedUrl.searchParams.set("scope", "read write");
-      expectedUrl.searchParams.set('resource', 'https://api.example.com/resource');
+      expectedUrl.searchParams.set(
+        "resource",
+        "https://api.example.com/resource",
+      );
 
-      expect(mockResponse.redirect).toHaveBeenCalledWith(expectedUrl.toString());
+      expect(mockResponse.redirect).toHaveBeenCalledWith(
+        expectedUrl.toString(),
+      );
     });
   });
 
@@ -128,7 +139,7 @@ describe("Proxy OAuth Server Provider", () => {
       const tokens = await provider.exchangeAuthorizationCode(
         validClient,
         "test-code",
-        "test-verifier"
+        "test-verifier",
       );
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -138,8 +149,8 @@ describe("Proxy OAuth Server Provider", () => {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: expect.stringContaining("grant_type=authorization_code")
-        })
+          body: expect.stringContaining("grant_type=authorization_code"),
+        }),
       );
       expect(tokens).toEqual(mockTokenResponse);
     });
@@ -150,7 +161,7 @@ describe("Proxy OAuth Server Provider", () => {
         validClient,
         "test-code",
         "test-verifier",
-        redirectUri
+        redirectUri,
       );
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -160,44 +171,49 @@ describe("Proxy OAuth Server Provider", () => {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: expect.stringContaining(`redirect_uri=${encodeURIComponent(redirectUri)}`)
-        })
+          body: expect.stringContaining(
+            `redirect_uri=${encodeURIComponent(redirectUri)}`,
+          ),
+        }),
       );
       expect(tokens).toEqual(mockTokenResponse);
     });
 
-    it('includes resource parameter in authorization code exchange', async () => {
+    it("includes resource parameter in authorization code exchange", async () => {
       const tokens = await provider.exchangeAuthorizationCode(
         validClient,
-        'test-code',
-        'test-verifier',
-        'https://example.com/callback',
-        new URL('https://api.example.com/resource')
+        "test-code",
+        "test-verifier",
+        "https://example.com/callback",
+        new URL("https://api.example.com/resource"),
       );
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://auth.example.com/token',
+        "https://auth.example.com/token",
         expect.objectContaining({
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: expect.stringContaining('resource=' + encodeURIComponent('https://api.example.com/resource'))
-        })
+          body: expect.stringContaining(
+            "resource=" +
+              encodeURIComponent("https://api.example.com/resource"),
+          ),
+        }),
       );
       expect(tokens).toEqual(mockTokenResponse);
     });
 
-    it('handles authorization code exchange without resource parameter', async () => {
+    it("handles authorization code exchange without resource parameter", async () => {
       const tokens = await provider.exchangeAuthorizationCode(
         validClient,
-        'test-code',
-        'test-verifier'
+        "test-code",
+        "test-verifier",
       );
 
       const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
       const body = fetchCall[1].body as string;
-      expect(body).not.toContain('resource=');
+      expect(body).not.toContain("resource=");
       expect(tokens).toEqual(mockTokenResponse);
     });
 
@@ -205,7 +221,7 @@ describe("Proxy OAuth Server Provider", () => {
       const tokens = await provider.exchangeRefreshToken(
         validClient,
         "test-refresh-token",
-        ["read", "write"]
+        ["read", "write"],
       );
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -215,29 +231,32 @@ describe("Proxy OAuth Server Provider", () => {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: expect.stringContaining("grant_type=refresh_token")
-        })
+          body: expect.stringContaining("grant_type=refresh_token"),
+        }),
       );
       expect(tokens).toEqual(mockTokenResponse);
     });
 
-    it('includes resource parameter in refresh token exchange', async () => {
+    it("includes resource parameter in refresh token exchange", async () => {
       const tokens = await provider.exchangeRefreshToken(
         validClient,
-        'test-refresh-token',
-        ['read', 'write'],
-        new URL('https://api.example.com/resource')
+        "test-refresh-token",
+        ["read", "write"],
+        new URL("https://api.example.com/resource"),
       );
 
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://auth.example.com/token',
+        "https://auth.example.com/token",
         expect.objectContaining({
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: expect.stringContaining('resource=' + encodeURIComponent('https://api.example.com/resource'))
-        })
+          body: expect.stringContaining(
+            "resource=" +
+              encodeURIComponent("https://api.example.com/resource"),
+          ),
+        }),
       );
       expect(tokens).toEqual(mockTokenResponse);
     });
@@ -267,7 +286,7 @@ describe("Proxy OAuth Server Provider", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(newClient),
-        })
+        }),
       );
       expect(result).toEqual(newClient);
     });
@@ -280,7 +299,7 @@ describe("Proxy OAuth Server Provider", () => {
       };
 
       await expect(
-        provider.clientsStore.registerClient!(newClient)
+        provider.clientsStore.registerClient!(newClient),
       ).rejects.toThrow(ServerError);
     });
   });
@@ -306,7 +325,7 @@ describe("Proxy OAuth Server Provider", () => {
             "Content-Type": "application/x-www-form-urlencoded",
           },
           body: expect.stringContaining("token=token-to-revoke"),
-        })
+        }),
       );
     });
 
@@ -315,7 +334,7 @@ describe("Proxy OAuth Server Provider", () => {
       await expect(
         provider.revokeToken!(validClient, {
           token: "invalid-token",
-        })
+        }),
       ).rejects.toThrow(ServerError);
     });
   });
@@ -350,7 +369,9 @@ describe("Proxy OAuth Server Provider", () => {
 
       await expect(provider.verifyAccessToken("token-with-insufficient-scope"))
         .rejects.toBe(error);
-      expect(mockVerifyToken).toHaveBeenCalledWith("token-with-insufficient-scope");
+      expect(mockVerifyToken).toHaveBeenCalledWith(
+        "token-with-insufficient-scope",
+      );
     });
 
     it("passes through unexpected errors", async () => {
@@ -362,4 +383,4 @@ describe("Proxy OAuth Server Provider", () => {
       expect(mockVerifyToken).toHaveBeenCalledWith("valid-token");
     });
   });
-}); 
+});

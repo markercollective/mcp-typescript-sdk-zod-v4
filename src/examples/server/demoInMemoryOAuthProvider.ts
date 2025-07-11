@@ -1,12 +1,21 @@
-import { randomUUID } from 'node:crypto';
-import { AuthorizationParams, OAuthServerProvider } from '../../server/auth/provider.js';
-import { OAuthRegisteredClientsStore } from '../../server/auth/clients.js';
-import { OAuthClientInformationFull, OAuthMetadata, OAuthTokens } from '../../shared/auth.js';
+import { randomUUID } from "node:crypto";
+import {
+  AuthorizationParams,
+  OAuthServerProvider,
+} from "../../server/auth/provider.js";
+import { OAuthRegisteredClientsStore } from "../../server/auth/clients.js";
+import {
+  OAuthClientInformationFull,
+  OAuthMetadata,
+  OAuthTokens,
+} from "../../shared/auth.js";
 import express, { Request, Response } from "express";
-import { AuthInfo } from '../../server/auth/types.js';
-import { createOAuthMetadata, mcpAuthRouter } from '../../server/auth/router.js';
-import { resourceUrlFromServerUrl } from '../../shared/auth-utils.js';
-
+import { AuthInfo } from "../../server/auth/types.js";
+import {
+  createOAuthMetadata,
+  mcpAuthRouter,
+} from "../../server/auth/router.js";
+import { resourceUrlFromServerUrl } from "../../shared/auth-utils.js";
 
 export class DemoInMemoryClientsStore implements OAuthRegisteredClientsStore {
   private clients = new Map<string, OAuthClientInformationFull>();
@@ -32,8 +41,9 @@ export class DemoInMemoryClientsStore implements OAuthRegisteredClientsStore {
 export class DemoInMemoryAuthProvider implements OAuthServerProvider {
   clientsStore = new DemoInMemoryClientsStore();
   private codes = new Map<string, {
-    params: AuthorizationParams,
-    client: OAuthClientInformationFull}>();
+    params: AuthorizationParams;
+    client: OAuthClientInformationFull;
+  }>();
   private tokens = new Map<string, AuthInfo>();
 
   constructor(private validateResource?: (resource?: URL) => boolean) {}
@@ -41,7 +51,7 @@ export class DemoInMemoryAuthProvider implements OAuthServerProvider {
   async authorize(
     client: OAuthClientInformationFull,
     params: AuthorizationParams,
-    res: Response
+    res: Response,
   ): Promise<void> {
     const code = randomUUID();
 
@@ -49,12 +59,12 @@ export class DemoInMemoryAuthProvider implements OAuthServerProvider {
       code,
     });
     if (params.state !== undefined) {
-      searchParams.set('state', params.state);
+      searchParams.set("state", params.state);
     }
 
     this.codes.set(code, {
       client,
-      params
+      params,
     });
 
     const targetUrl = new URL(client.redirect_uris[0]);
@@ -64,13 +74,12 @@ export class DemoInMemoryAuthProvider implements OAuthServerProvider {
 
   async challengeForAuthorizationCode(
     client: OAuthClientInformationFull,
-    authorizationCode: string
+    authorizationCode: string,
   ): Promise<string> {
-
     // Store the challenge with the code data
     const codeData = this.codes.get(authorizationCode);
     if (!codeData) {
-      throw new Error('Invalid authorization code');
+      throw new Error("Invalid authorization code");
     }
 
     return codeData.params.codeChallenge;
@@ -81,18 +90,22 @@ export class DemoInMemoryAuthProvider implements OAuthServerProvider {
     authorizationCode: string,
     // Note: code verifier is checked in token.ts by default
     // it's unused here for that reason.
-    _codeVerifier?: string
+    _codeVerifier?: string,
   ): Promise<OAuthTokens> {
     const codeData = this.codes.get(authorizationCode);
     if (!codeData) {
-      throw new Error('Invalid authorization code');
+      throw new Error("Invalid authorization code");
     }
 
     if (codeData.client.client_id !== client.client_id) {
-      throw new Error(`Authorization code was not issued to this client, ${codeData.client.client_id} != ${client.client_id}`);
+      throw new Error(
+        `Authorization code was not issued to this client, ${codeData.client.client_id} != ${client.client_id}`,
+      );
     }
 
-    if (this.validateResource && !this.validateResource(codeData.params.resource)) {
+    if (
+      this.validateResource && !this.validateResource(codeData.params.resource)
+    ) {
       throw new Error(`Invalid resource: ${codeData.params.resource}`);
     }
 
@@ -105,16 +118,16 @@ export class DemoInMemoryAuthProvider implements OAuthServerProvider {
       scopes: codeData.params.scopes || [],
       expiresAt: Date.now() + 3600000, // 1 hour
       resource: codeData.params.resource,
-      type: 'access',
+      type: "access",
     };
 
     this.tokens.set(token, tokenData);
 
     return {
       access_token: token,
-      token_type: 'bearer',
+      token_type: "bearer",
       expires_in: 3600,
-      scope: (codeData.params.scopes || []).join(' '),
+      scope: (codeData.params.scopes || []).join(" "),
     };
   }
 
@@ -122,15 +135,17 @@ export class DemoInMemoryAuthProvider implements OAuthServerProvider {
     _client: OAuthClientInformationFull,
     _refreshToken: string,
     _scopes?: string[],
-    _resource?: URL
+    _resource?: URL,
   ): Promise<OAuthTokens> {
-    throw new Error('Not implemented for example demo');
+    throw new Error("Not implemented for example demo");
   }
 
   async verifyAccessToken(token: string): Promise<AuthInfo> {
     const tokenData = this.tokens.get(token);
-    if (!tokenData || !tokenData.expiresAt || tokenData.expiresAt < Date.now()) {
-      throw new Error('Invalid or expired token');
+    if (
+      !tokenData || !tokenData.expiresAt || tokenData.expiresAt < Date.now()
+    ) {
+      throw new Error("Invalid or expired token");
     }
 
     return {
@@ -143,19 +158,26 @@ export class DemoInMemoryAuthProvider implements OAuthServerProvider {
   }
 }
 
-
-export const setupAuthServer = ({authServerUrl, mcpServerUrl, strictResource}: {authServerUrl: URL, mcpServerUrl: URL, strictResource: boolean}): OAuthMetadata => {
+export const setupAuthServer = (
+  { authServerUrl, mcpServerUrl, strictResource }: {
+    authServerUrl: URL;
+    mcpServerUrl: URL;
+    strictResource: boolean;
+  },
+): OAuthMetadata => {
   // Create separate auth server app
   // NOTE: This is a separate app on a separate port to illustrate
   // how to separate an OAuth Authorization Server from a Resource
   // server in the SDK. The SDK is not intended to be provide a standalone
   // authorization server.
 
-  const validateResource = strictResource ? (resource?: URL) => {
-    if (!resource) return false;
-    const expectedResource = resourceUrlFromServerUrl(mcpServerUrl);
-    return resource.toString() === expectedResource.toString();
-  } : undefined;
+  const validateResource = strictResource
+    ? (resource?: URL) => {
+      if (!resource) return false;
+      const expectedResource = resourceUrlFromServerUrl(mcpServerUrl);
+      return resource.toString() === expectedResource.toString();
+    }
+    : undefined;
 
   const provider = new DemoInMemoryAuthProvider(validateResource);
   const authApp = express();
@@ -169,14 +191,14 @@ export const setupAuthServer = ({authServerUrl, mcpServerUrl, strictResource}: {
   authApp.use(mcpAuthRouter({
     provider,
     issuerUrl: authServerUrl,
-    scopesSupported: ['mcp:tools'],
+    scopesSupported: ["mcp:tools"],
   }));
 
-  authApp.post('/introspect', async (req: Request, res: Response) => {
+  authApp.post("/introspect", async (req: Request, res: Response) => {
     try {
       const { token } = req.body;
       if (!token) {
-        res.status(400).json({ error: 'Token is required' });
+        res.status(400).json({ error: "Token is required" });
         return;
       }
 
@@ -184,16 +206,16 @@ export const setupAuthServer = ({authServerUrl, mcpServerUrl, strictResource}: {
       res.json({
         active: true,
         client_id: tokenInfo.clientId,
-        scope: tokenInfo.scopes.join(' '),
+        scope: tokenInfo.scopes.join(" "),
         exp: tokenInfo.expiresAt,
         aud: tokenInfo.resource,
       });
-      return
+      return;
     } catch (error) {
       res.status(401).json({
         active: false,
-        error: 'Unauthorized',
-        error_description: `Invalid token: ${error}`
+        error: "Unauthorized",
+        error_description: `Invalid token: ${error}`,
       });
     }
   });
@@ -209,10 +231,11 @@ export const setupAuthServer = ({authServerUrl, mcpServerUrl, strictResource}: {
   const oauthMetadata: OAuthMetadata = createOAuthMetadata({
     provider,
     issuerUrl: authServerUrl,
-    scopesSupported: ['mcp:tools'],
-  })
+    scopesSupported: ["mcp:tools"],
+  });
 
-  oauthMetadata.introspection_endpoint = new URL("/introspect", authServerUrl).href;
+  oauthMetadata.introspection_endpoint =
+    new URL("/introspect", authServerUrl).href;
 
   return oauthMetadata;
-}
+};

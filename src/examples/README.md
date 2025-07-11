@@ -1,6 +1,7 @@
 # MCP TypeScript SDK Examples
 
-This directory contains example implementations of MCP clients and servers using the TypeScript SDK.
+This directory contains example implementations of MCP clients and servers using
+the TypeScript SDK.
 
 ## Table of Contents
 
@@ -19,7 +20,8 @@ This directory contains example implementations of MCP clients and servers using
 
 ### Streamable HTTP Client
 
-A full-featured interactive client that connects to a Streamable HTTP server, demonstrating how to:
+A full-featured interactive client that connects to a Streamable HTTP server,
+demonstrating how to:
 
 - Establish and manage a connection to an MCP server
 - List and call tools with arguments
@@ -41,11 +43,14 @@ npx tsx src/examples/client/simpleOAuthClient.js
 
 ### Backwards Compatible Client
 
-A client that implements backwards compatibility according to the [MCP specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#backwards-compatibility), allowing it to work with both new and legacy servers. This client demonstrates:
+A client that implements backwards compatibility according to the
+[MCP specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#backwards-compatibility),
+allowing it to work with both new and legacy servers. This client demonstrates:
 
 - The client first POSTs an initialize request to the server URL:
   - If successful, it uses the Streamable HTTP transport
-  - If it fails with a 4xx status, it attempts a GET request to establish an SSE stream
+  - If it fails with a 4xx status, it attempts a GET request to establish an SSE
+    stream
 
 ```bash
 npx tsx src/examples/client/streamableHttpWithSseFallbackClient.ts
@@ -55,13 +60,15 @@ npx tsx src/examples/client/streamableHttpWithSseFallbackClient.ts
 
 ### Single Node Deployment
 
-These examples demonstrate how to set up an MCP server on a single node with different transport options.
+These examples demonstrate how to set up an MCP server on a single node with
+different transport options.
 
 #### Streamable HTTP Transport
 
 ##### Simple Streamable HTTP Server
 
-A server that implements the Streamable HTTP transport (protocol version 2025-03-26). 
+A server that implements the Streamable HTTP transport (protocol version
+2025-03-26).
 
 - Basic server setup with Express and the Streamable HTTP transport
 - Session management with an in-memory event store for resumability
@@ -83,11 +90,14 @@ npx tsx src/examples/server/simpleStreamableHttp.ts --oauth --oauth-strict
 
 ##### JSON Response Mode Server
 
-A server that uses Streamable HTTP transport with JSON response mode enabled (no SSE). 
+A server that uses Streamable HTTP transport with JSON response mode enabled (no
+SSE).
 
-- Streamable HTTP with JSON response mode, which returns responses directly in the response body
+- Streamable HTTP with JSON response mode, which returns responses directly in
+  the response body
 - Limited support for notifications (since SSE is disabled)
-- Proper response handling according to the MCP specification for servers that don't support SSE
+- Proper response handling according to the MCP specification for servers that
+  don't support SSE
 - Returning appropriate HTTP status codes for unsupported methods
 
 ```bash
@@ -96,11 +106,10 @@ npx tsx src/examples/server/jsonResponseStreamableHttp.ts
 
 ##### Streamable HTTP with server notifications
 
-A server that demonstrates server notifications using Streamable HTTP. 
+A server that demonstrates server notifications using Streamable HTTP.
 
 - Resource list change notifications with dynamically added resources
 - Automatic resource creation on a timed interval
-
 
 ```bash
 npx tsx src/examples/server/standaloneSseWithGetStreamableHttp.ts
@@ -108,18 +117,23 @@ npx tsx src/examples/server/standaloneSseWithGetStreamableHttp.ts
 
 #### Deprecated SSE Transport
 
-A server that implements the deprecated HTTP+SSE transport (protocol version 2024-11-05). This example only used for testing backwards compatibility for clients.
+A server that implements the deprecated HTTP+SSE transport (protocol version
+2024-11-05). This example only used for testing backwards compatibility for
+clients.
 
-- Two separate endpoints: `/mcp` for the SSE stream (GET) and `/messages` for client messages (POST)
-- Tool implementation with a `start-notification-stream` tool that demonstrates sending periodic notifications
+- Two separate endpoints: `/mcp` for the SSE stream (GET) and `/messages` for
+  client messages (POST)
+- Tool implementation with a `start-notification-stream` tool that demonstrates
+  sending periodic notifications
 
 ```bash
 npx tsx src/examples/server/simpleSseServer.ts
 ```
 
-#### Streamable Http Backwards Compatible Server with SSE 
+#### Streamable Http Backwards Compatible Server with SSE
 
-A server that supports both Streamable HTTP and SSE transports, adhering to the [MCP specification for backwards compatibility](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#backwards-compatibility). 
+A server that supports both Streamable HTTP and SSE transports, adhering to the
+[MCP specification for backwards compatibility](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#backwards-compatibility).
 
 - Single MCP server instance with multiple transport options
 - Support for Streamable HTTP requests at `/mcp` endpoint (GET/POST/DELETE)
@@ -133,23 +147,35 @@ npx tsx src/examples/server/sseAndStreamableHttpCompatibleServer.ts
 
 ### Multi-Node Deployment
 
-When deploying MCP servers in a horizontally scaled environment (multiple server instances), there are a few different options that can be useful for different use cases:
-- **Stateless mode** - No need to maintain state between calls to MCP servers. Useful for simple API wrapper servers.
-- **Persistent storage mode** - No local state needed, but session data is stored in a database. Example: an MCP server for online ordering where the shopping cart is stored in a database.
-- **Local state with message routing** - Local state is needed, and all requests for a session must be routed to the correct node. This can be done with a message queue and pub/sub system.
+When deploying MCP servers in a horizontally scaled environment (multiple server
+instances), there are a few different options that can be useful for different
+use cases:
+
+- **Stateless mode** - No need to maintain state between calls to MCP servers.
+  Useful for simple API wrapper servers.
+- **Persistent storage mode** - No local state needed, but session data is
+  stored in a database. Example: an MCP server for online ordering where the
+  shopping cart is stored in a database.
+- **Local state with message routing** - Local state is needed, and all requests
+  for a session must be routed to the correct node. This can be done with a
+  message queue and pub/sub system.
 
 #### Stateless Mode
 
-The Streamable HTTP transport can be configured to operate without tracking sessions. This is perfect for simple API proxies or when each request is completely independent.
+The Streamable HTTP transport can be configured to operate without tracking
+sessions. This is perfect for simple API proxies or when each request is
+completely independent.
 
 ##### Implementation
 
 To enable stateless mode, configure the `StreamableHTTPServerTransport` with:
+
 ```typescript
-sessionIdGenerator: undefined
+sessionIdGenerator: undefined;
 ```
 
-This disables session management entirely, and the server won't generate or expect session IDs.
+This disables session management entirely, and the server won't generate or
+expect session IDs.
 
 - No session ID headers are sent or expected
 - Any server node can process any request
@@ -174,22 +200,24 @@ This disables session management entirely, and the server won't generate or expe
 └─────────────────┘     └─────────────────────┘
 ```
 
-
-
 #### Persistent Storage Mode
 
-For cases where you need session continuity but don't need to maintain in-memory state on specific nodes, you can use a database to persist session data while still allowing any node to handle requests.
+For cases where you need session continuity but don't need to maintain in-memory
+state on specific nodes, you can use a database to persist session data while
+still allowing any node to handle requests.
 
 ##### Implementation
 
-Configure the transport with session management, but retrieve and store all state in an external persistent storage:
+Configure the transport with session management, but retrieve and store all
+state in an external persistent storage:
 
 ```typescript
 sessionIdGenerator: () => randomUUID(),
 eventStore: databaseEventStore
 ```
 
-All session state is stored in the database, and any node can serve any client by retrieving the state when needed.
+All session state is stored in the database, and any node can serve any client
+by retrieving the state when needed.
 
 - Maintains sessions with unique IDs
 - Stores all session data in an external database
@@ -198,7 +226,6 @@ All session state is stored in the database, and any node can serve any client b
 - No node-specific memory state means no need for message routing
 - Good for applications where state can be fully externalized
 - Somewhat higher latency due to database access for each request
-
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -226,11 +253,12 @@ All session state is stored in the database, and any node can serve any client b
 └─────────────────────────────────────────────┘
 ```
 
-
-
 #### Streamable HTTP with Distributed Message Routing
 
-For scenarios where local in-memory state must be maintained on specific nodes (such as Computer Use or complex session state), the Streamable HTTP transport can be combined with a pub/sub system to route messages to the correct node handling each session.
+For scenarios where local in-memory state must be maintained on specific nodes
+(such as Computer Use or complex session state), the Streamable HTTP transport
+can be combined with a pub/sub system to route messages to the correct node
+handling each session.
 
 1. **Bidirectional Message Queue Integration**:
    - All nodes both publish to and subscribe from the message queue
@@ -249,7 +277,8 @@ For scenarios where local in-memory state must be maintained on specific nodes (
 
 3. **Channel Identification**:
    - Each message channel combines both `mcp-session-id` and `stream-id`
-   - This ensures responses are correctly routed back to the originating connection
+   - This ensures responses are correctly routed back to the originating
+     connection
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -277,11 +306,9 @@ For scenarios where local in-memory state must be maintained on specific nodes (
 └─────────────────────────────────────────────┘
 ```
 
-
 - Maintains session affinity for stateful operations without client redirection
 - Enables horizontal scaling while preserving complex in-memory state
 - Provides fault tolerance through the message queue as intermediary
-
 
 ## Backwards Compatibility
 
@@ -293,10 +320,10 @@ To test the backwards compatibility features:
    ```bash
    # Legacy SSE server (protocol version 2024-11-05)
    npx tsx src/examples/server/simpleSseServer.ts
-   
+
    # Streamable HTTP server (protocol version 2025-03-26)
    npx tsx src/examples/server/simpleStreamableHttp.ts
-   
+
    # Backwards compatible server (supports both protocols)
    npx tsx src/examples/server/sseAndStreamableHttpCompatibleServer.ts
    ```
@@ -306,4 +333,5 @@ To test the backwards compatibility features:
    npx tsx src/examples/client/streamableHttpWithSseFallbackClient.ts
    ```
 
-This demonstrates how the MCP ecosystem ensures interoperability between clients and servers regardless of which protocol version they were built for.
+This demonstrates how the MCP ecosystem ensures interoperability between clients
+and servers regardless of which protocol version they were built for.

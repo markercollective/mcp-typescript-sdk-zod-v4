@@ -83,7 +83,10 @@ export const OAuthErrorResponseSchema = z
  * RFC 7591 OAuth 2.0 Dynamic Client Registration metadata
  */
 export const OAuthClientMetadataSchema = z.object({
-  redirect_uris: z.array(z.string()).refine((uris) => uris.every((uri) => URL.canParse(uri)), { message: "redirect_uris must contain valid URLs" }),
+  redirect_uris: z.array(z.string()).refine(
+    (uris) => uris.every((uri) => URL.canParse(uri)),
+    { message: "redirect_uris must contain valid URLs" },
+  ),
   token_endpoint_auth_method: z.string().optional(),
   grant_types: z.array(z.string()).optional(),
   response_types: z.array(z.string()).optional(),
@@ -114,7 +117,9 @@ export const OAuthClientInformationSchema = z.object({
 /**
  * RFC 7591 OAuth 2.0 Dynamic Client Registration full response (client information plus metadata)
  */
-export const OAuthClientInformationFullSchema = OAuthClientMetadataSchema.merge(OAuthClientInformationSchema);
+export const OAuthClientInformationFullSchema = OAuthClientMetadataSchema.merge(
+  OAuthClientInformationSchema,
+);
 
 /**
  * RFC 7591 OAuth 2.0 Dynamic Client Registration error response
@@ -132,13 +137,22 @@ export const OAuthTokenRevocationRequestSchema = z.object({
   token_type_hint: z.string().optional(),
 }).strip();
 
-
 export type OAuthMetadata = z.infer<typeof OAuthMetadataSchema>;
 export type OAuthTokens = z.infer<typeof OAuthTokensSchema>;
 export type OAuthErrorResponse = z.infer<typeof OAuthErrorResponseSchema>;
 export type OAuthClientMetadata = z.infer<typeof OAuthClientMetadataSchema>;
-export type OAuthClientInformation = z.infer<typeof OAuthClientInformationSchema>;
-export type OAuthClientInformationFull = z.infer<typeof OAuthClientInformationFullSchema>;
-export type OAuthClientRegistrationError = z.infer<typeof OAuthClientRegistrationErrorSchema>;
-export type OAuthTokenRevocationRequest = z.infer<typeof OAuthTokenRevocationRequestSchema>;
-export type OAuthProtectedResourceMetadata = z.infer<typeof OAuthProtectedResourceMetadataSchema>;
+export type OAuthClientInformation = z.infer<
+  typeof OAuthClientInformationSchema
+>;
+export type OAuthClientInformationFull = z.infer<
+  typeof OAuthClientInformationFullSchema
+>;
+export type OAuthClientRegistrationError = z.infer<
+  typeof OAuthClientRegistrationErrorSchema
+>;
+export type OAuthTokenRevocationRequest = z.infer<
+  typeof OAuthTokenRevocationRequestSchema
+>;
+export type OAuthProtectedResourceMetadata = z.infer<
+  typeof OAuthProtectedResourceMetadataSchema
+>;

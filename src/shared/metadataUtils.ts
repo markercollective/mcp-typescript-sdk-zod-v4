@@ -12,13 +12,15 @@ import { BaseMetadata } from "../types.js";
  */
 export function getDisplayName(metadata: BaseMetadata): string {
   // First check for title (not undefined and not empty string)
-  if (metadata.title !== undefined && metadata.title !== '') {
+  if (metadata.title !== undefined && metadata.title !== "") {
     return metadata.title;
   }
 
   // Then check for annotations.title (only present in Tool objects)
-  if ('annotations' in metadata) {
-    const metadataWithAnnotations = metadata as BaseMetadata & { annotations?: { title?: string } };
+  if ("annotations" in metadata) {
+    const metadataWithAnnotations = metadata as BaseMetadata & {
+      annotations?: { title?: string };
+    };
     if (metadataWithAnnotations.annotations?.title) {
       return metadataWithAnnotations.annotations.title;
     }

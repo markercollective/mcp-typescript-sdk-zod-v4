@@ -1,8 +1,23 @@
 import pkceChallenge from "pkce-challenge";
 import { LATEST_PROTOCOL_VERSION } from "../types.js";
-import type { OAuthClientMetadata, OAuthClientInformation, OAuthTokens, OAuthMetadata, OAuthClientInformationFull, OAuthProtectedResourceMetadata } from "../shared/auth.js";
-import { OAuthClientInformationFullSchema, OAuthMetadataSchema, OAuthProtectedResourceMetadataSchema, OAuthTokensSchema } from "../shared/auth.js";
-import { checkResourceAllowed, resourceUrlFromServerUrl } from "../shared/auth-utils.js";
+import type {
+  OAuthClientInformation,
+  OAuthClientInformationFull,
+  OAuthClientMetadata,
+  OAuthMetadata,
+  OAuthProtectedResourceMetadata,
+  OAuthTokens,
+} from "../shared/auth.js";
+import {
+  OAuthClientInformationFullSchema,
+  OAuthMetadataSchema,
+  OAuthProtectedResourceMetadataSchema,
+  OAuthTokensSchema,
+} from "../shared/auth.js";
+import {
+  checkResourceAllowed,
+  resourceUrlFromServerUrl,
+} from "../shared/auth-utils.js";
 
 /**
  * Implements an end-to-end OAuth client to be used with one MCP server.
@@ -32,7 +47,10 @@ export interface OAuthClientProvider {
    * server, or returns `undefined` if the client is not registered with the
    * server.
    */
-  clientInformation(): OAuthClientInformation | undefined | Promise<OAuthClientInformation | undefined>;
+  clientInformation():
+    | OAuthClientInformation
+    | undefined
+    | Promise<OAuthClientInformation | undefined>;
 
   /**
    * If implemented, this permits the OAuth client to dynamically register with
@@ -42,7 +60,9 @@ export interface OAuthClientProvider {
    * This method is not required to be implemented if client information is
    * statically known (e.g., pre-registered).
    */
-  saveClientInformation?(clientInformation: OAuthClientInformationFull): void | Promise<void>;
+  saveClientInformation?(
+    clientInformation: OAuthClientInformationFull,
+  ): void | Promise<void>;
 
   /**
    * Loads any existing OAuth tokens for the current session, or returns
@@ -80,7 +100,10 @@ export interface OAuthClientProvider {
    *
    * Implementations must verify the returned resource matches the MCP server.
    */
-  validateResourceURL?(serverUrl: string | URL, resource?: string): Promise<URL | undefined>;
+  validateResourceURL?(
+    serverUrl: string | URL,
+    resource?: string,
+  ): Promise<URL | undefined>;
 }
 
 export type AuthResult = "AUTHORIZED" | "REDIRECT";
@@ -99,28 +122,34 @@ export class UnauthorizedError extends Error {
  */
 export async function auth(
   provider: OAuthClientProvider,
-  { serverUrl,
-    authorizationCode,
-    scope,
-    resourceMetadataUrl
-  }: {
+  { serverUrl, authorizationCode, scope, resourceMetadataUrl }: {
     serverUrl: string | URL;
     authorizationCode?: string;
     scope?: string;
-    resourceMetadataUrl?: URL }): Promise<AuthResult> {
-
+    resourceMetadataUrl?: URL;
+  },
+): Promise<AuthResult> {
   let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
   let authorizationServerUrl = serverUrl;
   try {
-    resourceMetadata = await discoverOAuthProtectedResourceMetadata(serverUrl, {resourceMetadataUrl});
-    if (resourceMetadata.authorization_servers && resourceMetadata.authorization_servers.length > 0) {
+    resourceMetadata = await discoverOAuthProtectedResourceMetadata(serverUrl, {
+      resourceMetadataUrl,
+    });
+    if (
+      resourceMetadata.authorization_servers &&
+      resourceMetadata.authorization_servers.length > 0
+    ) {
       authorizationServerUrl = resourceMetadata.authorization_servers[0];
     }
   } catch {
     // Ignore errors and fall back to /.well-known/oauth-authorization-server
   }
 
-  const resource: URL | undefined = await selectResourceURL(serverUrl, provider, resourceMetadata);
+  const resource: URL | undefined = await selectResourceURL(
+    serverUrl,
+    provider,
+    resourceMetadata,
+  );
 
   const metadata = await discoverOAuthMetadata(authorizationServerUrl);
 
@@ -128,11 +157,15 @@ export async function auth(
   let clientInformation = await Promise.resolve(provider.clientInformation());
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
-      throw new Error("Existing OAuth client information is required when exchanging an authorization code");
+      throw new Error(
+        "Existing OAuth client information is required when exchanging an authorization code",
+      );
     }
 
     if (!provider.saveClientInformation) {
-      throw new Error("OAuth client information must be saveable for dynamic registration");
+      throw new Error(
+        "OAuth client information must be saveable for dynamic registration",
+      );
     }
 
     const fullInformation = await registerClient(authorizationServerUrl, {
@@ -183,26 +216,36 @@ export async function auth(
   const state = provider.state ? await provider.state() : undefined;
 
   // Start new authorization flow
-  const { authorizationUrl, codeVerifier } = await startAuthorization(authorizationServerUrl, {
-    metadata,
-    clientInformation,
-    state,
-    redirectUrl: provider.redirectUrl,
-    scope: scope || provider.clientMetadata.scope,
-    resource,
-  });
+  const { authorizationUrl, codeVerifier } = await startAuthorization(
+    authorizationServerUrl,
+    {
+      metadata,
+      clientInformation,
+      state,
+      redirectUrl: provider.redirectUrl,
+      scope: scope || provider.clientMetadata.scope,
+      resource,
+    },
+  );
 
   await provider.saveCodeVerifier(codeVerifier);
   await provider.redirectToAuthorization(authorizationUrl);
   return "REDIRECT";
 }
 
-export async function selectResourceURL(serverUrl: string| URL, provider: OAuthClientProvider, resourceMetadata?: OAuthProtectedResourceMetadata): Promise<URL | undefined> {
+export async function selectResourceURL(
+  serverUrl: string | URL,
+  provider: OAuthClientProvider,
+  resourceMetadata?: OAuthProtectedResourceMetadata,
+): Promise<URL | undefined> {
   const defaultResource = resourceUrlFromServerUrl(serverUrl);
 
   // If provider has custom validation, delegate to it
   if (provider.validateResourceURL) {
-    return await provider.validateResourceURL(defaultResource, resourceMetadata?.resource);
+    return await provider.validateResourceURL(
+      defaultResource,
+      resourceMetadata?.resource,
+    );
   }
 
   // Only include resource parameter when Protected Resource Metadata is present
@@ -211,8 +254,15 @@ export async function selectResourceURL(serverUrl: string| URL, provider: OAuthC
   }
 
   // Validate that the metadata's resource is compatible with our request
-  if (!checkResourceAllowed({ requestedResource: defaultResource, configuredResource: resourceMetadata.resource })) {
-    throw new Error(`Protected resource ${resourceMetadata.resource} does not match expected ${defaultResource} (or origin)`);
+  if (
+    !checkResourceAllowed({
+      requestedResource: defaultResource,
+      configuredResource: resourceMetadata.resource,
+    })
+  ) {
+    throw new Error(
+      `Protected resource ${resourceMetadata.resource} does not match expected ${defaultResource} (or origin)`,
+    );
   }
   // Prefer the resource from metadata since it's what the server is telling us to request
   return new URL(resourceMetadata.resource);
@@ -222,14 +272,13 @@ export async function selectResourceURL(serverUrl: string| URL, provider: OAuthC
  * Extract resource_metadata from response header.
  */
 export function extractResourceMetadataUrl(res: Response): URL | undefined {
-
   const authenticateHeader = res.headers.get("WWW-Authenticate");
   if (!authenticateHeader) {
     return undefined;
   }
 
-  const [type, scheme] = authenticateHeader.split(' ');
-  if (type.toLowerCase() !== 'bearer' || !scheme) {
+  const [type, scheme] = authenticateHeader.split(" ");
+  if (type.toLowerCase() !== "bearer" || !scheme) {
     return undefined;
   }
   const regex = /resource_metadata="([^"]*)"/;
@@ -254,10 +303,9 @@ export function extractResourceMetadataUrl(res: Response): URL | undefined {
  */
 export async function discoverOAuthProtectedResourceMetadata(
   serverUrl: string | URL,
-  opts?: { protocolVersion?: string, resourceMetadataUrl?: string | URL },
+  opts?: { protocolVersion?: string; resourceMetadataUrl?: string | URL },
 ): Promise<OAuthProtectedResourceMetadata> {
-
-  let url: URL
+  let url: URL;
   if (opts?.resourceMetadataUrl) {
     url = new URL(opts?.resourceMetadataUrl);
   } else {
@@ -268,8 +316,9 @@ export async function discoverOAuthProtectedResourceMetadata(
   try {
     response = await fetch(url, {
       headers: {
-        "MCP-Protocol-Version": opts?.protocolVersion ?? LATEST_PROTOCOL_VERSION
-      }
+        "MCP-Protocol-Version": opts?.protocolVersion ??
+          LATEST_PROTOCOL_VERSION,
+      },
     });
   } catch (error) {
     // CORS errors come back as TypeError
@@ -281,7 +330,9 @@ export async function discoverOAuthProtectedResourceMetadata(
   }
 
   if (response.status === 404) {
-    throw new Error(`Resource server does not implement OAuth 2.0 Protected Resource Metadata.`);
+    throw new Error(
+      `Resource server does not implement OAuth 2.0 Protected Resource Metadata.`,
+    );
   }
 
   if (!response.ok) {
@@ -305,10 +356,10 @@ async function fetchWithCorsRetry(
     if (error instanceof TypeError) {
       if (headers) {
         // CORS errors come back as TypeError, retry without headers
-        return fetchWithCorsRetry(url)
+        return fetchWithCorsRetry(url);
       } else {
         // We're getting CORS errors on retry too, return undefined
-        return undefined
+        return undefined;
       }
     }
     throw error;
@@ -320,7 +371,7 @@ async function fetchWithCorsRetry(
  */
 function buildWellKnownPath(pathname: string): string {
   let wellKnownPath = `/.well-known/oauth-authorization-server${pathname}`;
-  if (pathname.endsWith('/')) {
+  if (pathname.endsWith("/")) {
     // Strip trailing slash from pathname to avoid double slashes
     wellKnownPath = wellKnownPath.slice(0, -1);
   }
@@ -335,7 +386,7 @@ async function tryMetadataDiscovery(
   protocolVersion: string,
 ): Promise<Response | undefined> {
   const headers = {
-    "MCP-Protocol-Version": protocolVersion
+    "MCP-Protocol-Version": protocolVersion,
   };
   return await fetchWithCorsRetry(url, headers);
 }
@@ -343,8 +394,11 @@ async function tryMetadataDiscovery(
 /**
  * Determines if fallback to root discovery should be attempted
  */
-function shouldAttemptFallback(response: Response | undefined, pathname: string): boolean {
-  return !response || response.status === 404 && pathname !== '/';
+function shouldAttemptFallback(
+  response: Response | undefined,
+  pathname: string,
+): boolean {
+  return !response || response.status === 404 && pathname !== "/";
 }
 
 /**
@@ -590,7 +644,10 @@ export async function refreshAuthorization(
     throw new Error(`Token refresh failed: HTTP ${response.status}`);
   }
 
-  return OAuthTokensSchema.parse({ refresh_token: refreshToken, ...(await response.json()) });
+  return OAuthTokensSchema.parse({
+    refresh_token: refreshToken,
+    ...(await response.json()),
+  });
 }
 
 /**
@@ -610,7 +667,9 @@ export async function registerClient(
 
   if (metadata) {
     if (!metadata.registration_endpoint) {
-      throw new Error("Incompatible auth server: does not support dynamic client registration");
+      throw new Error(
+        "Incompatible auth server: does not support dynamic client registration",
+      );
     }
 
     registrationUrl = new URL(metadata.registration_endpoint);
@@ -627,7 +686,9 @@ export async function registerClient(
   });
 
   if (!response.ok) {
-    throw new Error(`Dynamic client registration failed: HTTP ${response.status}`);
+    throw new Error(
+      `Dynamic client registration failed: HTTP ${response.status}`,
+    );
   }
 
   return OAuthClientInformationFullSchema.parse(await response.json());

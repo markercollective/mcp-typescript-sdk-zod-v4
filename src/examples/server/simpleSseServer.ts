@@ -1,35 +1,40 @@
-import express, { Request, Response } from 'express';
-import { McpServer } from '../../server/mcp.js';
-import { SSEServerTransport } from '../../server/sse.js';
-import { z } from 'zod';
-import { CallToolResult } from '../../types.js';
+import express, { Request, Response } from "express";
+import { McpServer } from "../../server/mcp.js";
+import { SSEServerTransport } from "../../server/sse.js";
+import { z } from "zod";
+import { CallToolResult } from "../../types.js";
 
 /**
- * This example server demonstrates the deprecated HTTP+SSE transport 
+ * This example server demonstrates the deprecated HTTP+SSE transport
  * (protocol version 2024-11-05). It mainly used for testing backward compatible clients.
- * 
+ *
  * The server exposes two endpoints:
  * - /mcp: For establishing the SSE stream (GET)
  * - /messages: For receiving client messages (POST)
- * 
  */
 
 // Create an MCP server instance
 const getServer = () => {
   const server = new McpServer({
-    name: 'simple-sse-server',
-    version: '1.0.0',
+    name: "simple-sse-server",
+    version: "1.0.0",
   }, { capabilities: { logging: {} } });
 
   server.tool(
-    'start-notification-stream',
-    'Starts sending periodic notifications',
+    "start-notification-stream",
+    "Starts sending periodic notifications",
     {
-      interval: z.number().describe('Interval in milliseconds between notifications').default(1000),
-      count: z.number().describe('Number of notifications to send').default(10),
+      interval: z.number().describe(
+        "Interval in milliseconds between notifications",
+      ).default(1000),
+      count: z.number().describe("Number of notifications to send").default(10),
     },
-    async ({ interval, count }, { sendNotification }): Promise<CallToolResult> => {
-      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    async (
+      { interval, count },
+      { sendNotification },
+    ): Promise<CallToolResult> => {
+      const sleep = (ms: number) =>
+        new Promise((resolve) => setTimeout(resolve, ms));
       let counter = 0;
 
       // Send the initial notification
@@ -37,8 +42,9 @@ const getServer = () => {
         method: "notifications/message",
         params: {
           level: "info",
-          data: `Starting notification stream with ${count} messages every ${interval}ms`
-        }
+          data:
+            `Starting notification stream with ${count} messages every ${interval}ms`,
+        },
       });
 
       // Send periodic notifications
@@ -51,11 +57,10 @@ const getServer = () => {
             method: "notifications/message",
             params: {
               level: "info",
-              data: `Notification #${counter} at ${new Date().toISOString()}`
-            }
+              data: `Notification #${counter} at ${new Date().toISOString()}`,
+            },
           });
-        }
-        catch (error) {
+        } catch (error) {
           console.error("Error sending notification:", error);
         }
       }
@@ -63,12 +68,13 @@ const getServer = () => {
       return {
         content: [
           {
-            type: 'text',
-            text: `Completed sending ${count} notifications every ${interval}ms`,
-          }
+            type: "text",
+            text:
+              `Completed sending ${count} notifications every ${interval}ms`,
+          },
         ],
       };
-    }
+    },
   );
   return server;
 };
@@ -80,13 +86,13 @@ app.use(express.json());
 const transports: Record<string, SSEServerTransport> = {};
 
 // SSE endpoint for establishing the stream
-app.get('/mcp', async (req: Request, res: Response) => {
-  console.log('Received GET request to /sse (establishing SSE stream)');
+app.get("/mcp", async (req: Request, res: Response) => {
+  console.log("Received GET request to /sse (establishing SSE stream)");
 
   try {
     // Create a new SSE transport for the client
     // The endpoint for POST messages is '/messages'
-    const transport = new SSEServerTransport('/messages', res);
+    const transport = new SSEServerTransport("/messages", res);
 
     // Store the transport by session ID
     const sessionId = transport.sessionId;
@@ -104,31 +110,31 @@ app.get('/mcp', async (req: Request, res: Response) => {
 
     console.log(`Established SSE stream with session ID: ${sessionId}`);
   } catch (error) {
-    console.error('Error establishing SSE stream:', error);
+    console.error("Error establishing SSE stream:", error);
     if (!res.headersSent) {
-      res.status(500).send('Error establishing SSE stream');
+      res.status(500).send("Error establishing SSE stream");
     }
   }
 });
 
 // Messages endpoint for receiving client JSON-RPC requests
-app.post('/messages', async (req: Request, res: Response) => {
-  console.log('Received POST request to /messages');
+app.post("/messages", async (req: Request, res: Response) => {
+  console.log("Received POST request to /messages");
 
   // Extract session ID from URL query parameter
   // In the SSE protocol, this is added by the client based on the endpoint event
   const sessionId = req.query.sessionId as string | undefined;
 
   if (!sessionId) {
-    console.error('No session ID provided in request URL');
-    res.status(400).send('Missing sessionId parameter');
+    console.error("No session ID provided in request URL");
+    res.status(400).send("Missing sessionId parameter");
     return;
   }
 
   const transport = transports[sessionId];
   if (!transport) {
     console.error(`No active transport found for session ID: ${sessionId}`);
-    res.status(404).send('Session not found');
+    res.status(404).send("Session not found");
     return;
   }
 
@@ -136,9 +142,9 @@ app.post('/messages', async (req: Request, res: Response) => {
     // Handle the POST message with the transport
     await transport.handlePostMessage(req, res, req.body);
   } catch (error) {
-    console.error('Error handling request:', error);
+    console.error("Error handling request:", error);
     if (!res.headersSent) {
-      res.status(500).send('Error handling request');
+      res.status(500).send("Error handling request");
     }
   }
 });
@@ -146,12 +152,14 @@ app.post('/messages', async (req: Request, res: Response) => {
 // Start the server
 const PORT = 3000;
 app.listen(PORT, () => {
-  console.log(`Simple SSE Server (deprecated protocol version 2024-11-05) listening on port ${PORT}`);
+  console.log(
+    `Simple SSE Server (deprecated protocol version 2024-11-05) listening on port ${PORT}`,
+  );
 });
 
 // Handle server shutdown
-process.on('SIGINT', async () => {
-  console.log('Shutting down server...');
+process.on("SIGINT", async () => {
+  console.log("Shutting down server...");
 
   // Close all active transports to properly clean up resources
   for (const sessionId in transports) {
@@ -163,6 +171,6 @@ process.on('SIGINT', async () => {
       console.error(`Error closing transport for session ${sessionId}:`, error);
     }
   }
-  console.log('Server shutdown complete');
+  console.log("Server shutdown complete");
   process.exit(0);
 });

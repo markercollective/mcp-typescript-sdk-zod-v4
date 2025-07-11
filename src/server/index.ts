@@ -12,6 +12,7 @@ import {
   ElicitResult,
   ElicitResultSchema,
   EmptyResultSchema,
+  ErrorCode,
   Implementation,
   InitializedNotificationSchema,
   InitializeRequest,
@@ -22,7 +23,6 @@ import {
   ListRootsResultSchema,
   LoggingMessageNotification,
   McpError,
-  ErrorCode,
   Notification,
   Request,
   ResourceUpdatedNotification,
@@ -102,11 +102,13 @@ export class Server<
     this._capabilities = options?.capabilities ?? {};
     this._instructions = options?.instructions;
 
-    this.setRequestHandler(InitializeRequestSchema, (request) =>
-      this._oninitialize(request),
+    this.setRequestHandler(
+      InitializeRequestSchema,
+      (request) => this._oninitialize(request),
     );
-    this.setNotificationHandler(InitializedNotificationSchema, () =>
-      this.oninitialized?.(),
+    this.setNotificationHandler(
+      InitializedNotificationSchema,
+      () => this.oninitialized?.(),
     );
   }
 
@@ -265,7 +267,8 @@ export class Server<
     this._clientCapabilities = request.params.capabilities;
     this._clientVersion = request.params.clientInfo;
 
-    const protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(requestedVersion)
+    const protocolVersion =
+      SUPPORTED_PROTOCOL_VERSIONS.includes(requestedVersion)
         ? requestedVersion
         : LATEST_PROTOCOL_VERSION;
 
@@ -324,14 +327,16 @@ export class Server<
     if (result.action === "accept" && result.content) {
       try {
         const ajv = new Ajv();
-        
+
         const validate = ajv.compile(params.requestedSchema);
         const isValid = validate(result.content);
-        
+
         if (!isValid) {
           throw new McpError(
             ErrorCode.InvalidParams,
-            `Elicitation response content does not match requested schema: ${ajv.errorsText(validate.errors)}`,
+            `Elicitation response content does not match requested schema: ${
+              ajv.errorsText(validate.errors)
+            }`,
           );
         }
       } catch (error) {
